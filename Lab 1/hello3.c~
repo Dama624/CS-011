@@ -1,0 +1,25 @@
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
+
+int main(void)
+{
+  srand(time(0));
+  char name[100];
+  printf("Enter your first name: ");
+  scanf("%99s", name);
+  int n = rand() % (10) + 1;
+  int i;
+  for (i = 0; i < n; i++)
+    {
+      if (n % 2 == 0)
+	{
+	  printf("%d: hello, %s!\n", n, name);
+	}
+      else
+	{
+	  printf("%d: hi there, %s!\n", n, name);
+	}
+    }
+  return 0;
+}
