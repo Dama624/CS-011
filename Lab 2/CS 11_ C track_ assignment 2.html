@@ -1,0 +1,580 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 2</title>
+</head>
+
+<body linkifytime="14" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 2</h1>
+</center>
+<hr>
+
+<h2>Goals</h2>
+
+<p>In this assignment you will write a more substantial program and learn
+some new language constructs.</p>
+
+<h2>Language concepts covered this week</h2>
+
+<ul>
+<li>operators</li>
+<li>functions</li>
+<li>function prototypes</li>
+<li>more on loops</li>
+<li>comments</li>
+</ul>
+
+<h2>Other concepts covered this week</h2>
+
+<ul>
+<li>the <code>make</code> program and Makefiles</li>
+<li>I/O redirection (unix)</li>
+<li>test scripts</li>
+</ul>
+
+
+<h2>Reading</h2>
+
+<p>Read <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/make.html">this page</a> to familiarize yourself
+with the <code>make</code> program and Makefiles.</p>
+
+<p>Also take a look at our <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_guide.html">C style
+guide</a>.  Starting from this lab, I'll be more picky about style
+issues.</p>
+
+
+<h2>Operators and operator precedence in C</h2>
+
+<p>An "operator" is a character or character sequence that has a special
+syntactic meaning to the C compiler.  Most operators are <u>binary</u>, which
+means that they are found sandwiched between two values.  An example is the
+addition operator, <code>+</code>, which is found in expressions such as
+<code>1 + 2</code>.  Some operators are <u>unary</u>, such as the bitwise-NOT
+operator (<code>~</code>).  One operator is actually <u>trinary</u> (the
+dreaded &nbsp; <code>?&nbsp;:</code> &nbsp; operator), but we won't discuss
+it here.  Compared to most languages, C has a very large number of operators
+and a correspondingly large number of operator precedence levels (15 of them
+to be precise; see table 2-1 in K&amp;R if you're curious).  Operator
+precedence levels determine how to interpret expressions with multiple
+operators.  For instance,</p>
+
+<pre>    a = b + c * d + e;
+</pre>
+
+<p>is interpreted as being</p>
+
+<pre>    a = b + (c * d) + e;
+</pre>
+
+<p>because multiplication has higher precedence than addition.  If we want it
+to be interpreted differently, we need to use parentheses, <i>e.g.</i></p>
+
+<pre>    a = (b + c) * (d + e);
+</pre>
+
+
+<p>Note that the <code>=</code> sign is also an operator (the assignment
+operator).  It has very low precedence, so we don't need to use parentheses
+around the arithmetic expression to the right of the <code>=</code> sign.
+Also note that (confusingly) equality testing uses the <code>==</code>
+operator, not the <code>=</code> operator.</p>
+
+<p>We <b>do not</b> want you to memorize the operator precedence table!
+Instead, simply use these three rules:</p>
+
+<ol>
+
+<li>Multiplication and division have precedence over addition and
+subtraction;</li>
+
+<li>All assignment operators (except for <code>++</code> and <code>--</code>)
+have extremely low precedence;</li>
+
+<li>Put parentheses around everything else where there is any possibility of
+confusion.</li>
+
+</ol>
+
+<p>Also note that C has a lot of shortcut assignment operators:</p>
+
+<ul>
+
+<li><p>Operators of the form <code>op=</code> <i>e.g.</i> <code>+=</code>,
+<code>-=</code>, <code>*=</code>, <code>/=</code>, <code>%=</code>, etc.
+These all have this meaning:</p>
+
+<pre>    x op= y;
+</pre>
+
+<p>means:</p>
+
+<pre>    x = x op y;
+</pre>
+
+<p>for some operator "<code>op</code>".</p></li>
+
+<li><p>The <code>++</code> and <code>--</code> increment/decrement
+operators.</p></li>
+
+</ul>
+
+<p>Used judiciously, they often result in more concise and understandable
+code.  An annoying fact is that the <code>++</code> and <code>--</code>
+operators have a very <i>high</i> precedence, whereas all the other
+assignment operators have the same precedence as <code>=</code> does.</p>
+
+
+<h2>Program to write</h2>
+
+<p>You will write a program called <code>easter</code> that will compute the
+day of the year on which Easter falls, given the year.</p>
+
+<h3>Description of the algorithm</h3>
+
+<p>This algorithm is taken from Donald Knuth's famous book <u>The Art of
+Computer Programming</u> (see the references below).</p>
+
+<pre>    GIVEN:   Y: the year for which the date of Easter is to be determined.
+    FIND:    The date (month and day) of Easter
+
+    STEP E1: Set G to (Y mod 19) + 1.
+             [G is the "golden year" in the 19-year Metonic cycle.]
+    STEP E2: Set C to (Y / 100) + 1. [C is the century]
+    STEP E3: Set X to (3C / 4) - 12. [X is the skipped leap years.]
+             Set Z to ((8C + 5) / 25) - 5.
+             [Z is a correction factor for the moon's orbit.]
+    STEP E4: Set D to (5Y / 4) - X - 10.
+             [March ((-D) mod 7 + 7) is a Sunday.]
+    STEP E5: Set E to (11G + 20 + Z - X) mod 30.
+             If E is 25 and G is greater than 11 or if E is 24,
+             increment E.
+             [E is the "epact" which specifies when a full moon occurs.]
+    STEP E6: Set N to 44 - E.  [March N is a "calendar full moon".]
+             If N is less than 21 then add 30 to N.
+    STEP E7: Set N to N + 7 - ((D + N) mod 7).
+             [N is a Sunday after full moon.]
+    STEP E8: If N &gt; 31 the date is APRIL (N - 31),
+             otherwise the date is MARCH N.
+</pre>
+
+<p><u>Note</u>: all divisions in this algorithm are integer divisions, which
+means that any fractional remainders are thrown away.  Also, the comment
+"March ((-D) mod 7 + 7) is a Sunday" is technically only true for years after
+1752, because there was an 11-day correction applied to the calendar in
+September of 1752.  You don't need to mention this in your comments, since it
+doesn't affect the Easter computation.</p>
+
+<p><u>Note 2</u>: We will be adding another step to make the algorithm work
+nicely with our C program; see the description of the program below for more
+details.</p>
+
+<p><u>Note 3</u>: Just because the great Don Knuth wrote this algorithm this
+way doesn't mean that it's written in a nice or easy-to-understand way.  In
+particular, the use of single characters as variable names is usually a very
+bad idea (because single characters don't have any meaning to the person
+reading the code), and we don't want you to do that in this program.  Knuth
+was trying to describe the algorithm in as short a space as possible; you
+don't have that restriction.</p>
+
+
+<h3>Explanation of the algorithm</h3>
+
+<p>Ever wonder what those monks did during the Dark Ages, all secluded away
+in their distant mountaintop monasteries and things?  Well, it turns out that
+they were busy calculating the date of Easter.  See, even back then, there
+wasn't much point in spending any effort on calculating the dates of holidays
+like Christmas, which as everyone knows, is on the same day each year.  That
+also went for holidays which have become a tad more obscure, like Assumption
+(August 15th).</p>
+
+<p>But the trouble with Easter is that it has to fall on Sunday.  I mean, if you
+don't have that, all the other non-fixed holidays get all screwed up.  Who
+ever heard of having Ash Wednesday on a Saturday, or Good Friday on Thursday?
+If the Christian church had gone and made a foolish mistake like that, they'd
+have been the laughingstock of all the other major religions everywhere.</p>
+
+<p>So the Church leaders hemmed and hawwed and finally defined Easter to fall
+on the first Sunday after the first full moon after the vernal equinox.</p>
+
+<p>I guess that edict must not have been too well-received, or something,
+because they then went on to define the vernal equinox as March 21st, which
+simplified matters quite a bit, since the astronomers of the time weren't
+really sure that they were up to the task of finding the date of the real
+vernal equinox for any given year other than the current one, and often not
+even that.  So far so good.</p>
+
+<p>The tricky part all comes from this business about the full moon.  The
+astronomers of the time weren't too great at predicting that either, though
+usually they could get it right to within a reasonable amount, if you didn't
+want a prediction that was too far into the future.  Since the Church really
+kinda needed to be able to predict the date of Easter more than a few days in
+advance, it went with the best full-moon-prediction algorithm available, and
+defined "first full moon after the vernal equinox" in terms of that.  This is
+called the Paschal Full Moon, and it's where all the wacky epacts and Metonic
+cycles come from.</p>
+
+<h4>So what's a Metonic Cycle?</h4>
+
+<p>A Metonic cycle is 19 years.</p>
+
+<p>The reason for the number 19 is the following, little-known fact: if you
+look up in the sky on January 1 and see a full moon, then look again on the
+same day precisely 19 years later, you'll see another full moon.  In the
+meantime, there will have been 234 other full moons, but none of them will
+have occurred on January 1st.</p>
+
+<p>What the ancient astronomers didn't realize, and what makes the formula
+slightly inaccurate, is that the moon only really goes around the earth about
+234.997 times in 19 years, instead of exactly 235 times.  Still, it's pretty
+close -- and without computers, or even slide rules, or even pencils, you
+were happy enough to use that nice, convenient 19-year figure, and not worry
+too much about some 0.003-cycle inaccuracy that you didn't really have the
+time or instruments to measure correctly anyway.</p>
+
+<h4>Okay, how about this Golden Number business then?</h4>
+
+<p>It's just a name people used for how many years into the Metonic cycle you
+were.  Say you're walking down the street in Medieval Europe, and someone
+asks you what the Golden Number was.  Just think back to when the last
+19-year Metonic cycle started, and start counting from there.  If this is the
+first year of the cycle, it means that the Golden Number is 1; if it's the
+5th, the Golden number is 5; and so on.</p>
+
+<h4>Okay, so what's this Epact thing?</h4>
+
+<p>In the Gregorian calendar, the Epact is just the age of the moon at the
+beginning of the year.  No, the age of the moon is not five billion years --
+not here, anyway.  Back in those days, when you talked about the age of the
+moon, you meant the number of days since the moon was "new".  So if there was
+a new moon on January 1st of this year, the Epact is zero (because the moon
+is new, <i>i.e.</i> zero days "old"); if the moon was new three days before,
+the Epact is three; and so on.</p>
+
+<p>When Easter was first introduced, the calculation for the Epact was very
+simple -- since the phases of the moon repeated themselves every 19 years, or
+close enough, the Epact was really easy to calculate from the Golden Number.
+Of course, this was the same calendar system that had one leap year every 4
+years, which turned out to be too many, so the farmers ended up planting the
+fields at the wrong times, and life just started to suck.</p>
+
+<h4>Pope Gregory Makes Things More Complicated</h4>
+
+<p>You probably already know about the changes Pope Gregory XIII made in 1582
+with respect to leap years.  No more of this "one leap year every four years"
+business like that Julius guy said.  Nowadays, you get one leap year every
+four years <i>unless</i> the current year is a multiple of 100, in which case
+you don't -- <i><b>unless</b></i> the current year is <i>also</i> a multiple
+of 400, in which case you do anyway.  That's why 2000 was a leap year, even
+though 1900 wasn't (I'm sure many of you were bothered by this at the turn of
+the millenium).</p>
+
+<p>Well, it turns out that the <i>other</i> thing Pope Gregory did, while he
+was at it, was to fix this Metonic Cycle-based Easter formula which, quite
+frankly, had a few bugs in it -- like the fact that Easter kept moving
+around, bumping into other holidays, occuring at the wrong time of year, and
+generally making a nuisance of itself.</p>
+
+<p>Unfortunately, Pope Gregory had not taken CS 11.  So instead of throwing
+out the old, poorly-designed code and building a new design from scratch, he
+sort of patched up the old version of the program (this is common even in
+modern times).  While he was at it, he changed the definition of Epact
+slightly.  Don't worry about it, though -- the definition above is the new,
+correct, Gregorian version.</p>
+
+<p>This is why you'll see Knuth calculating the Epact in terms of the Golden
+Number, and then applying a "correction" of sorts afterwards: Gregory defined
+the Epact, and therefore Easter, in terms of the old definition with the
+Metonic cycles in it.  Knuth is just the messenger here.</p>
+
+<h4>So what is this thing with "Z" and the moon's orbit?</h4>
+
+<p>It's just the "correction" factor which the Pope introduced (and Knuth
+later simplified) to account for the fact that the moon doesn't really orbit
+the earth exactly 235 times in 19 years.  It's analogous to the "correction
+factor" he introduced in the leap years -- the new formula is based on the
+old one, is reasonably simple for people who don't like fractions, is also
+kind of arbitrary in some sense, and comes out much closer to reality, but
+still isn't perfect.</p>
+
+<h4>What about all the rest of that stuff?</h4>
+
+<p>Ah, well, you wouldn't want me to make this too easy, would you?  My hope
+is that, after this brief introduction, that code up there will not seem
+quite so mysterious, and that you may, in fact, be able to figure out, if not
+exactly what's going on, at least most of the stuff that's happening in
+there.</p>
+
+<h3>Description of the program</h3>
+
+<p>Write a program that reads a series of years from a text file and prints
+out the date of Easter on all those years, as follows.</p>
+
+<ul>
+
+<li><p><b>Running the program</b></p> 
+
+<p>When the program is written, use Unix input/output redirection to handle
+input from and output to files (if you don't know about this, <a href="http://en.wikipedia.org/wiki/Redirection_%28Unix%29">here</a> is a decent
+tutorial).  In other words, invoke the program like this:</p>
+
+<pre>% easter  &lt; infile  &gt; outfile
+</pre>
+
+<p>where <code>%</code> is the Unix prompt (so you don't type that in).
+<b>Note:</b> this is Unix syntax, <b>not</b> C syntax!  The <code>&lt;
+infile</code> part means to take the input from the file called
+<code>infile</code> instead of from the keyboard, and the <code>&gt;
+outfile</code> part means to send the output to the file called
+<code>outfile</code> instead of printing it to the terminal.  See below for
+more details on this.</p>
+
+<p><b>Note:</b> You can't leave out the &lt; and &gt; characters <i>i.e.</i>
+don't do this:</p>
+
+<pre>    easter infile outfile
+</pre>
+
+<p><code>infile</code> is a file containing a list of years (one per
+line) <i>e.g.</i></p>
+
+<pre>    1994
+    1995
+    1998
+</pre>
+
+<p>and <code>outfile</code> will become a list of year/date pairs,
+<i>e.g.</i></p>
+
+<pre>    1994 - April 3
+    1995 - April 16
+    1998 - April 12
+</pre>
+
+<p>Handling input from files and output to files directly from your C program
+is possible, but it's a little bit more complicated, so we won't bother with
+it now (it involves functions like <code>fopen()</code>,
+<code>fclose()</code> and <code>fscanf()</code>; look them up if you're
+curious).  Instead, you just have to read from standard input (<i>i.e.</i>
+the terminal; use <code>scanf()</code> like in the previous lab) and write to
+standard output (using <code>printf()</code>).  Unix operating systems
+(including Linux, which is what the CS cluster machines are running) will
+convert this to reading from a file and writing to a file if you use the
+<code>&lt;</code> and <code>&gt;</code> symbols in the command line as we
+showed above:</p>
+
+<pre>% easter  &lt; infile  &gt; outfile
+</pre>
+
+<p>Technically, what this does is bind standard input to the file
+<code>infile</code> and bind standard output to the file <code>outfile</code>
+just for this one invocation of the <code>easter</code> program, so that when
+in your program you read from standard input (using <code>scanf()</code>)
+you're really reading from <code>infile</code>, and when you write to
+standard output (using <code>printf()</code>) you're really writing to
+<code>outfile</code>.  If you think this is kind of cool, then you're
+right.</p>
+
+</li>
+
+<li><p><b>Easter computation</b></p>
+
+<p>The program should include a function called
+<code>calculate_Easter_date</code> (yes, that exact name) which takes an
+integer argument (the year) and returns an integer representing the date.
+The month should be indicated by the sign of the integer return value:
+negative means March and positive means April.  The absolute value of the
+integer represents the day of the month.  So April 10 would be represented as
+the integer 10, while March 23 would be represented as the integer -23.
+<b>This is not part of the Knuth algorithm!</b> You have to convert from the
+value that Knuth's algorithm gives you to the value in this representation
+(which is quite easy).</p>
+
+<font color="red">[<b>NOTE</b>: Returning the date this way is an egregious
+hack.  There are much better ways to return multiple values from a C
+function, which will be described in later labs.]</font> 
+
+<p>The allowable years are in the range 1582 to 39999; if the input is
+outside of this range, the <code>calculate_Easter_date</code> function should
+return 0.  When the main program sees this return value, it should print an
+error message to <code>stderr</code> (NOT to <code>stdout</code>; use
+<code>fprintf</code> instead of <code>printf</code> for this), and then
+continue with the loop.</p>
+
+<p><b>NOTE:</b> Don't print the error message inside the
+<code>calculate_Easter_date</code> function; do it inside the
+<code>main</code> function.  This is good design; the
+<code>calculate_Easter_date</code> function should only be concerned with
+calculating the Easter date; printing error messages are not its
+responsibility.  In general, you should design functions to do one thing and
+only one thing; it'll make your programs much more elegant and much easier to
+debug.</p>
+
+</li>
+
+<li><p><b>Input/output</b></p> 
+
+<p>In the <code>main()</code> function, use a call to <code>scanf</code> to
+read in each the input line from <code>stdin</code>.  Note that to read an
+integer value using <code>scanf</code>, you need to use the "%d" format
+string (where "d" means "decimal").  Store the return value of
+<code>scanf</code> in a variable (yes, <code>scanf</code> does return a
+value, but it isn't used very often).  This return value will be equal to the
+integer constant <code>EOF</code> ("end of file") when there is no more
+input.  <code>EOF</code> is defined in the header file
+<code>&lt;stdio.h&gt;</code>, just like <code>printf</code> and
+<code>scanf</code>.  You will find the <code>break</code> statement (K&amp;R
+pp. 64-65) to be useful in your loop.  Use a <code>while</code> loop that
+loops forever <i>e.g.</i> <code>while (1) { ... } </code> until an
+<code>EOF</code> is encountered, and then <code>break</code> out of the loop.
+The <code>main()</code> function should call the
+<code>calculate_Easter_date()</code> function for each line of input.  If
+<code>calculate_Easter_date()</code> returns 0 (because of a range error),
+print an error message to <code>stderr</code> and keep going.</p>
+
+<p>Make sure you have declared function prototypes at the top of your file
+before you define the functions.  Although this isn't strictly necessary
+here, it's a good habit to get into.  Prototypes allow you to reference
+functions before they are defined, which allows you to program without having
+to worry about what order your functions are defined in.  You do not have to
+write a prototype for the <code>main</code> function.</p>
+
+</li>
+
+<li><p><b>Commenting</b></p>
+
+<p><b>Comment your code liberally, especially the Easter algorithm
+itself.</b> Very few programmers write too many comments; most write way too
+few.  Remember, your task is to write a program which (a) does what it's
+supposed to, and (b) is clearly understandable.  You are free to copy Knuth's
+algorithm verbatim if you like, but make sure you add comments explaining
+what each step of the algorithm does.  Also, your version of the algorithm
+should contain better variable names than the ones Knuth uses.  If you use
+one-letter variable names like Knuth does, you'll have to redo the program.
+Instead, use variable names that are words or phrases that are descriptive of
+the meaning of the variable.</p>
+
+<p>For functions, <b>put a comment before the function that states what the
+function does, what the arguments mean, and what the return value means.</b>
+These are the most important kinds of comments you'll ever write, because
+they are what will allow other people to use your code.</p>
+
+<p>Also, put a comment at the top of the file explaining what the program
+does as a whole.</p>
+
+<p>We will be grading your program not only on how well it performs its task,
+but on how easy it is to read and understand.  Make sure you keep this in
+mind as you do this lab.  And don't think this is only an exercise for this
+lab -- future labs have to have the same standard of commenting.</p>
+
+</li>
+
+</ul>
+
+
+<h2>Testing the program</h2>
+
+<p>We are supplying you with a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab2/Makefile">simple
+<code>Makefile</code></a>.  Download it into your lab2 directory as a file
+called "<code>Makefile</code>" (it should be called that by default; just
+don't change the name).  Running "<code>make</code>" will create the
+<code>easter</code> program.  Running "<code>make test</code>" will run a
+simple test of the program and report whether it is correct or not with
+respect to the inputs.  This is an example of a "test script".  Test scripts
+are critically important in producing correctly-working code.  Some
+programmers even advocate writing test scripts and test cases for functions
+before writing the actual code to be tested.  Running "<code>make
+check</code>" will run the style checker on your code.</p>
+
+
+<h2>Other things to do</h2>
+
+<p>Write a <code>clean</code> target for the Makefile.  This target will
+remove the <code>easter</code> program, all object files, and all files
+generated by the program when you type "<code>make clean</code>".  It must
+<b>not</b> remove the input file used to test the program, your source code
+file, the test script, or the correct output file.  <b>Hint:</b> use the Unix
+command "<code>rm -f</code>" (<i>i.e.</i> the <code>rm</code> program with
+the <code>-f</code> optional argument) to remove your files.  Normally,
+<code>rm</code> complains if you try to remove a nonexistent file, but with
+the <code>-f</code> optional argument it won't.  Note also that "<code>rm
+-f</code>" can take multiple filename arguments.</p>
+
+<p>Try the program on an input file that intentionally contains years that
+are outside the correct range.  Send the output to a file as usual.  The
+error messages should be printed on the terminal, not put into the file.
+This shows you the difference between printing to <code>stdout</code> (which
+<code>printf()</code> does) and printing to <code>stderr</code> (which
+<code>fprintf()</code> does if you tell it to).</p>
+
+<h2>Supporting files</h2>
+
+<p>Make sure you download all of these files into your <code>lab2</code>
+directory (except possibly for the style checker, which ideally you should
+already have put into your <code>~/bin</code> directory).</p>
+
+<ul>
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab2/Makefile">Makefile</a>.</p>
+
+<p><b>NOTE!</b> Be sure that all the command lines in the Makefile start with
+tabs, or they will not work.  The easy way to do this is not to try to copy
+and paste from the browser window.  Instead, use the "Save Page As" function
+of your browser (which is probably under the File menu).</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab2/run_test">test script</a>.</p>
+
+<p>In order to get this to work, you have to do "<code>chmod +x run_test</code>"
+after downloading this file, in order to make it executable.  Make sure that the
+resulting file name is "<code>run_test</code>" and not (for instance)
+"<code>run_test.txt</code>", or it won't work!.</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab2/years.in">input file</a>, for testing.</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab2/correct_easter_dates.out">correct output file</a>, for
+testing.</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_check">style checker</a>.</p></li>
+</ul>
+
+
+<h2>To hand in</h2>
+
+<p>The program <code>easter.c</code> and the completed <code>Makefile</code>.
+We will run the program to see if it passes the test script.</p>
+
+<h3>For extra credit...</h3>
+
+<p>Have your program use Zeller's Congruence to verify that the date it is
+printing really does fall on a Sunday. Use <code>assert</code> to signal an
+error in case it doesn't.  Get the definition of Zeller's Congruence by doing
+an internet search.  Type "<code>man assert</code>" to learn more about the
+<code>assert</code> macro.  Assert is a very valuable and under-appreciated
+debugging aid, which we will meet again in later labs.</p>
+
+
+<h2>References</h2>
+
+<ul>
+
+<li><p>K&amp;R, chapters 2, 3, and 4.</p></li>
+
+<li><p>Donald Knuth, <u>The Art of Computer Programming, vol. 1: Fundamental
+Algorithms</u>.</p>
+
+<p><u>The Art of Computer Programming</u> is a three-volume set (although more
+volumes are being written) which is a definitive treatment on computer
+algorithms written by Donald Knuth.  The books are usually referred to simply
+as "Knuth vol. 1", etc.  They are extremely dense and not really suitable for
+beginners, but they are good if you need to look up an algorithm and learn
+more about it.  Knuth virtually invented the field of mathematical analysis
+of computer algorithms, and is still going strong.</p></li>
+
+</ul>
+
+<hr>
+
+
+
+
+</body></html>

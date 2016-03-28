@@ -1,0 +1,521 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 6</title>
+</head>
+
+<body linkifytime="12" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 6</h1>
+</center>
+<hr>
+
+<h2>Goals</h2>
+
+<p>In this assignment you will write a sorting program similar to the program
+from lab 3, except that it uses linked lists instead of arrays to hold the
+list of numbers read in off the command line.  In the process, you will learn
+about one of the fundamental constructs in the C language (structs) and more
+about pointers.</p>
+
+<h2>Language concepts covered this week</h2>
+
+<ul>
+
+<li><p>structs</p>
+
+<p>Structs provide a way to bundle together several related pieces of data
+into a single piece of data.  Structs are commonly used to define new data
+types.</p></li>
+
+<li><p>typedefs</p>
+
+<p>Typedefs are a way to give an alias (alternative name) for a type name.
+Used correctly, they can make code both more concise and more readable.</p>
+</li>
+
+<li><p>linked lists</p>
+
+<p>Linked lists are a fundamental data type that is constructed using
+structs and pointers.  Linked lists are very common in real code, so it is
+important that you become comfortable with using them.</p></li>
+
+</ul>
+
+<h2>Other concepts covered this week</h2>
+
+<p>This lab covers sorting in a so-called "functional" style, whereby the
+original data collection to be sorted is not altered by the sorting process.
+Rather, the sorting process generates a new, sorted data collection.  If you
+know the Scheme programming language (<i>e.g.</i> from CS 4) this style will
+be familiar to you; if not, it's well worth learning about.</p>
+
+<h2>Structs</h2>
+
+<p>A struct is a data object which holds other data objects of arbitrary
+pre-specified types.  These data objects are called the "fields" of the
+struct, and they are generally conceptually related to each other.  For
+instance, if you wanted a data object to hold the x-y coordinates of a point
+on a graphical display screen, you could declare a struct to do this:</p>
+
+<pre>    struct point
+    {
+        int x;
+        int y;
+    }
+</pre>
+
+<p>This declaration tells the compiler what a <code>point</code> is, but
+doesn't create any points.  To do that you do this:</p>
+
+<pre>    struct point p;  /* Creates a new point called 'p'. */
+</pre>
+
+<p>However, most C programmers use the following shortcut.  In C you can give
+a type name an alias (alternative name) by using a <i>typedef</i>:</p>
+
+<pre>    typedef struct point
+    {
+        int x;
+        int y;
+    } Point;
+</pre>
+
+<p>This defines <code>struct point</code> as above, and also declares
+<code>Point</code> to be an alias for <code>struct point</code>.  Now you can
+create a new <code>Point</code> like this:</p>
+
+<pre>    Point p;
+</pre>
+
+<p>Note that <code>Point</code> and <code>point</code> are not the same
+thing, because you don't use the <code>struct point</code> syntax
+when you're declaring a <code>Point</code>.  In fact, writing <code>struct
+Point</code> is invalid; you have to just write <code>Point</code>.  However,
+a <code>Point</code> object is still a <code>struct</code>.</p>
+
+<p>How do you use a struct?  You can access the field values in two different
+ways.  The first way is to use the <code>.</code> operator:</p>
+
+<pre>    int z;
+    Point p;
+
+    p.x = 10;  /* Set 'x' field of p to 10 */
+    p.y = 20;  /* Set 'y' field of p to 20 */
+
+    /* You can use 'p.x' syntax on either side of an assignment statement. */
+    z = p.x + p.y;  /* = 30 */
+</pre>
+
+<p>The second way is used with pointers to structs.  Then you would normally
+use the arrow (<code>-&gt;</code>) operator:</p>
+
+<pre>    int z;
+    Point p;
+    Point *q;  /* pointer to a Point struct */
+
+    q = &amp;p;    /* Now q points to p. */
+
+    q-&gt;x = 10;  /* Set 'x' field to 10 */
+    q-&gt;y = 20;  /* Set 'y' field  to 20 */
+
+    /* You can use 'q-&gt;x' syntax on either side of an assignment statement. */
+    z = q-&gt;x + q-&gt;y;  /* = 30 */
+</pre>
+
+<p>Note that <code>q-&gt;x</code> is nothing more than syntactic sugar for
+<code>(*q).x</code>.</p>
+
+<h2>Recursively-defined structs and singly-linked lists</h2>
+
+<p>This lab will feature a new data type called a <i>singly-linked list</i>.
+This is a very flexible data type; whole computer languages (<i>e.g.</i> Lisp
+and Scheme) have been built around it.  We will restrict ourselves to a
+singly-linked list of integers.  In C we only need one struct for this, which
+we'll call a "node":</p>
+
+<pre>    typedef
+    struct _node
+    {
+      int data;             /* Each node stores a number */
+      struct _node *next;   /* and a pointer to the next node in the list. */
+    } node;
+</pre>
+
+<p>Actually, we are declaring a struct called <code>_node</code> and
+<code>typedef</code>'ing it to the name <code>node</code>.  The interesting
+thing about this struct is that it is recursively defined.  A
+<code>node</code> has a <code>data</code> field which holds an integer and a
+pointer to another <code>node</code> in its <code>next</code> field.</p>
+
+<p>The way we use this is as follows.  We allocate memory for a bunch of
+nodes, then we link the <code>next</code> field of one node to another node,
+link the <code>next</code> field of that node to still another node, and so
+on until all of the nodes are linked together.  We set the <code>next</code>
+field of the last node to be equal to <code>NULL</code>, which lets us know
+when we've hit the end.  <code>NULL</code> is a value <code>#define</code>'d
+in <code>&lt;stdio.h&gt;</code> which cannot be the value of a valid pointer
+(normally it is defined to be zero).  The code to create the list might look
+something like this:</p>
+
+<pre>    int i;
+    int n_nodes = 10;  /* We want ten nodes. */
+    node *list;        /* pointer to the list */
+    node *temp, *prev; /* temporary pointers to nodes */
+
+    /* Make the node at the front of the list first. */
+
+    list = (node *)malloc(sizeof(node));
+
+    /* Check for malloc failure. */
+    if (list == NULL)  /* malloc failed */
+    {
+        fprintf(stderr, "Error: malloc() failed.\n");
+        exit(1);  /* Give up, abort program. */
+    }
+
+    list-&gt;data = 1;
+    list-&gt;next = NULL;  /* No other nodes yet. */
+
+    /* Make the rest of the nodes and link them up. */
+
+    prev = list;
+
+    for (i = 0; i &lt; (n_nodes - 1); i++)
+    {
+        /* Create a new node. */
+        temp = (node *)malloc(sizeof(node));
+
+        /* Check for malloc failure. */
+        if (temp == NULL)  /* malloc failed */
+        {
+            fprintf(stderr, "Error: malloc() failed.\n");
+            exit(1);  /* Give up, abort program. */
+        }
+
+        /* Initialize the new node. */
+        temp-&gt;data = prev-&gt;data + 1;
+        temp-&gt;next = NULL;
+
+        /* Link previous node to the new node. */
+        prev-&gt;next = temp;
+
+        /* Set the 'prev' pointer to point to the new node. */
+        prev = temp;
+    }
+
+    /*
+     * Now, 'list' points to a list of ten nodes,
+     * with values 1, 2, 3, ... 10 from front to back.
+     */
+</pre>
+
+<p>Another way to do this is to create the list starting from the end node
+and growing it backwards until you hit the first node.  This is actually
+a lot easier:</p>
+
+<pre>    int i, data;
+    int n_nodes = 10;  /* We want ten nodes. */
+    node *list;        /* pointer to the list */
+    node *temp;        /* temporary pointer to node */
+    list = NULL;       /* NULL represents the empty list. */
+    data = 10;         /* Starting data value. */
+
+    /* Make the nodes and link them up. */
+
+    for (i = 0; i &lt; n_nodes; i++)
+    {
+        /* Create a new node. */
+        temp = (node *)malloc(sizeof(node));
+
+        /* Check for malloc failure. */
+        if (temp == NULL)  /* malloc failed */
+        {
+            fprintf(stderr, "Error: malloc() failed.\n");
+            exit(1);  /* Give up, abort program. */
+        }
+
+        /* Initialize the new node. */
+        temp-&gt;data = data;
+        temp-&gt;next = list;
+
+        /* Set the data value for the next node. */
+        data--;
+
+        /* Set the 'list' pointer to point to the new node. */
+        list = temp;
+    }
+
+    /*
+     * Now, 'list' points to a list of ten nodes,
+     * with values 1, 2, 3, ... 10 from front to back.
+     */
+</pre>
+
+<p>You should work through both of these examples until you understand why
+they work.  It's easy to write linked list code which is much more
+complicated than it needs to be if you're not clear on what's really
+happening when you create nodes and link them up.</p>
+
+<p>In fact, we've already written all the linked list routines that you'll
+need for this lab.  They are described in the header file <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.h">linked_list.h</a> and defined in the file <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.c">linked_list.c</a>.  All you have to do is use them.
+And make sure you <b>do</b> use them; we'll take points off for not using
+them and instead writing the equivalent code out by hand.  That's a practice
+called "reinventing the wheel" which is a bad habit; once someone else has
+gone to the trouble of writing working, fully-debugged code, it doesn't make
+sense to rewrite it yourself if their version works fine for your
+purpose.</p>
+
+
+<h2>Program to write</h2>
+
+<p>The program to write for this lab is a variation on <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab3/lab3.html">lab 3</a>.  Recall that in that program, you input a
+list of numbers and the program printed them out in sorted order.  This time
+you will be doing the same thing, with these differences:</p>
+
+<ol>
+
+<li><p>You will use a linked list to store the numbers entered on the command
+line.  This will have the advantage that you can enter an arbitrary number of
+numbers (<i>i.e.</i> you're not limited to just 32 numbers).</p>
+
+</li><li><p>You will use the "quicksort" algorithm to sort the numbers instead of
+the minimal insertion sort or bubble sort.  Quicksort is much more efficient
+than those algorithms, and is described below.</p>
+
+</li></ol>
+
+<p>Your program will be called <code>quicksorter</code>.  Here is the
+specification:</p>
+
+<ol>
+
+<li><p>The program will accept an arbitrary number of numbers on the command
+line, as long as there is at least one number.</p></li>
+
+<li><p>If there are no command-line arguments, or if there are arguments but
+none that represent numbers to be sorted, the program should print out
+instructions on its use (<i>i.e.</i> a usage message).  By the way, don't
+assume that the test script checks this; currently it doesn't, so check it
+yourself (we will).</p></li>
+
+<li><p>If any of the arguments to the program are not integers, your
+program's response is undefined -- it can do anything.  (i.e. you shouldn't
+worry about handling non-integer arguments).  The only exception to this is
+the optional "<code>-q</code>" argument to suppress output (see
+below).</p></li>
+
+<li><p>The program will sort the numbers using the quicksort algorithm.  The
+numbers on the command line will be stored in a linked list.  You should have
+a separate <code>quicksort</code> function to do the sorting.  This function
+should receive exactly <b>one</b> argument (the list to be sorted) and return
+a pointer to a newly-allocated list which contains the same integers as the
+input list, but in sorted (ascending) order.  Do <b>not</b> alter the
+original list in any way.  Also, do not pass the length of the list to the
+<code>quicksort</code> function (it isn't necessary anyway).</p></li>
+
+<li><p>As in lab 3, use <code>assert</code> to check that the list is sorted
+after doing the sort.  Use the <code>is_sorted()</code> function in
+<code>linked_list.c</code> to check the list.  Put the <code>assert</code>
+check at the end of the <code>quicksort</code> function, right before it
+returns the sorted list.</p></li>
+
+<li><p>Print out the numbers from smallest to largest, one per line.</p></li>
+
+<li><p>Use the memory leak checker as in the previous assignment to check
+that there are no memory leaks.</p></li>
+
+</ol>
+
+<h3>The Sample Output</h3>
+
+<pre>    % <b>quicksorter 5 9 -2 150 -95 23 2 5 80</b>
+    -95
+    -2
+    2
+    5
+    5
+    9
+    23
+    80
+    150
+    % <b>quicksorter</b>
+    usage: quicksorter [-q] number1 [number2 ... ]
+    %
+</pre>
+
+<h3>Command-line options</h3>
+
+<p>Add a "<code>-q</code>" command-line argument that suppresses output like
+you did in assignment 3.  Make sure that even when this is in effect, you
+still sort the numbers.  Also, make sure in all cases that you use the
+<code>is_sorted()</code> function in <code>linked_list.c</code> (see below)
+to test whether the sorted list is in fact sorted.  Your program should
+accept single or multiple "<code>-q</code>" arguments on the command line
+(just like lab 3), where multiple "<code>-q</code>" arguments are the same as
+a single one, and if there are no numbers on the command line (<i>e.g.</i>
+just "<code>-q</code>" arguments) the program should exit with a usage
+message.</p>
+
+<h3>The quicksort algorithm</h3>
+
+<p>Quicksort is a sorting algorithm invented by the computer scientist
+C. A. R. Hoare.  It is much more efficient than bubble sort or insertion sort
+(technically, it has an O(n log n) average time complexity as compared to
+O(n^2) for the other two algorithms).  Quicksort is usually used to sort an
+array in place (there is even a C library function called <code>qsort</code>
+which does this), but in this case we are sorting a linked list and we are
+not modifying the original list, which changes the details of the algorithm
+somewhat.  Quicksort is a recursive algorithm, like the algorithm you used to
+solve the peg game in lab 4.</p>
+
+<p>Here is the algorithm:</p>
+
+<ol>
+
+<li><p>If the list has zero nodes (<i>i.e.</i> it's empty) or one node, copy
+the list as-is and return it (it's already sorted).  Note that this algorithm
+works fine on empty lists.</p></li>
+
+<li><p>Otherwise, create a copy of the first node of the list and "put it
+aside" for now.</p></li>
+
+<li><p>Divide the rest of the list into two new lists:</p>
+     <ol>
+     <li>The nodes with values larger than or equal to the value of the first
+     node;</li>
+     <li>the nodes with value smaller than the value of the first node.</li>
+     </ol>
+     <p>Remember, you have to make these lists yourself and they have to copy
+     the values in the original nodes.</p>
+</li>
+
+<li>Sort these two new lists using a recursive call to the
+<code>quicksort</code> routine.</li>
+
+<li><p>Append everything together in order:</p>
+     <ol>
+     <li>The list of nodes with values smaller than the first node,</li>
+     <li>the copy of the first node,</li>
+     <li>and the list of nodes with values larger than or equal to the first
+     node.</li>
+     </ol>
+</li>
+
+<p>Use the <code>append_lists</code> function defined in
+<code>linked_list.c</code> to do the appending.</p>
+
+</ol>
+
+<h3>Memory management</h3>
+
+<p>Remember, when you use <code>malloc</code> or <code>calloc</code> to
+allocate memory, that memory must be explicitly freed (using the
+<code>free</code> function) before the end of the program or you have a
+<b>memory leak</b>.  It can be tricky avoiding memory leaks, but here is a
+specific suggestion: don't ever do this:</p>
+
+<pre>    node *list;
+    /* ... some code which assigns values to 'list' ... */
+    /* Sort the list and set the list pointer to point to the sorted list. */
+    list = sort_list(list);
+</pre>
+
+<p>In this case, <code>sort_list()</code> returns a new (sorted) list, and
+the list pointer <code>list</code> is set to the head of that list.  This is
+a memory leak, because the old list that <code>list</code> pointed to was
+never freed.  The right way to do this is as follows:</p>
+
+<pre>    node *list;
+    node *sorted_list;
+    /* ... some code which assigns values to 'list' ... */
+    /* Sort the list and set the list pointer to point to the sorted list. */
+    sorted_list = sort_list(list);
+    free_list(list);
+    list = sorted_list;
+</pre>
+
+<p>The result is the same, but there's no memory leak.</p>
+
+<p>Again, use the memory leak checker as you did last lab to make sure that
+you haven't inadvertently leaked any memory.  Recall that you do this by
+putting these lines at the top of the file <code>quicksorter.c</code>:</p>
+
+<pre>    #include &lt;stdlib.h&gt;
+    #include "memcheck.h"
+</pre>
+
+<p>and then putting this line in the <code>main</code> function before
+exiting:</p>
+
+<pre>    print_memory_leaks();
+</pre>
+
+<p>In addition, if you can't track down a memory leak you might try changing
+the following line in <code>memcheck.c</code> from</p>
+
+<pre>    #define DEBUG 0
+</pre>
+
+<p>to</p>
+
+<pre>    #define DEBUG 1
+</pre>
+
+<p>and recompiling.  This will give more verbose output relating to memory
+allocation.</p>
+
+<h3>Code supplied</h3>
+
+<p>There are a number of useful utility functions supplied in <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.c">linked_list.c</a> and declared in <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.h">linked_list.h</a>.  Please use these instead of
+writing your own versions; it will save you a lot of time.  You will need to
+<code>#include "linked_list.h"</code> in order for this to work.</p>
+
+<h2>Testing your program</h2>
+
+<p>This is the similar to the test script for assignment 3 (though not as
+rigorous).  Also test your program on some numbers you generate by hand.  If
+you need to use a debugger, read the <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/gdb.html">gdb page</a>
+to learn how to use <code>gdb</code> (the debugger for <code>gcc</code>).</p>
+
+<h2>Supporting files</h2>
+
+<ul>
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/Makefile">Makefile</a>.</p>
+
+<p>Once again, be sure that all the command lines in the Makefile start with
+tabs, or they will not work.</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/run_test">test script</a>.</p>
+
+<p>Make sure your program passes this before you hand it in.</p></li>
+
+<li><p><a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.c">linked_list.c</a> and
+    <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/linked_list.h">linked_list.h</a>.</p></li>
+
+<li><p>The memory leak checker: <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/memcheck.c">memcheck.c</a> and
+     <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab6/memcheck.h">memcheck.h</a>.</p></li>
+</ul>
+
+<hr>
+
+<h2>To hand in</h2>
+
+<p>The <code>quicksorter</code> program.</p>
+
+<hr>
+
+<h2>References</h2>
+
+<ul>
+<li>Darnell and Margolis, chapter 9.</li>
+<li>K&amp;R, chapters 1 and 5.</li>
+<li>Any algorithms textbook <i>e.g.</i> Sedgewick, <u>Algorithms in C</u>.</li>
+</ul>
+
+<hr>
+
+
+
+</body></html>

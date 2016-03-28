@@ -1,0 +1,602 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 5</title>
+</head>
+
+<body linkifytime="14" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 5</h1>
+</center>
+<hr>
+
+<h2>Goals</h2>
+
+<p>In this assignment you will write a program to simulate a simple <a href="http://math.hws.edu/xJava/CA/CA.html">one-dimensional cellular
+automaton</a>, which are related to (but are not the same as) two-dimensional
+cellular automata like Conway's <a href="http://www.math.com/students/wonders/life/life.html">game of Life</a>.
+We will use this example to introduce pointers and pointer arithmetic, as
+well as dynamic memory allocation.  Pointers are the most confusing topic in
+C, so we will spend a lot of time discussing them before we get to the
+program you have to write.</p>
+
+<hr>
+
+<h2>Language concepts covered this week</h2>
+
+<ul>
+<li>pointers</li>
+<li>dynamic memory allocation</li>
+<li>the <code>sizeof</code> operator</li>
+<li>type casts</li>
+</ul>
+
+<h2>Other concepts covered this week</h2>
+
+<p>Memory leaks.</p>
+
+<hr>
+
+<h2>Pointers</h2>
+
+<p>To quote from K&amp;R:</p>
+
+<blockquote>
+A pointer is a variable that contains the address of a variable.
+</blockquote>
+
+<p>What's this about addresses, though?  In C, as in many computer languages,
+variables refer to particular locations in memory.  This location is known as
+the <i>address</i> of the variable.  Numerically, the address is the number
+of the memory location in bytes.  It is normally represented using a
+hexadecimal number (<i>e.g.</i> <code>0x00124AF4</code>; recall that
+hexadecimal numbers in C are entered with a leading "0x").  In fact, you can
+directly get at the address in C by using the <code>&amp;</code> operator
+<i>e.g.</i> <code>&amp;foo</code> is the address of the variable
+<code>foo</code>.  (<b>Note</b>: the <code>&amp;</code> operator has another
+meaning ("bitwise AND") that the compiler determines from the context.)  This
+address can be stored in a pointer.  However, pointers have specific types
+(<i>e.g.</i> "pointer to integer"), so, in general, you can only store the
+address of an integer in a pointer to an integer.  Pointers are declared as
+follows:</p>
+
+<pre>    int *p;  /* declares 'p' to be a pointer to an integer */
+</pre>
+
+<p>The declaration uses the <code>*</code> operator.  Confusingly, this
+operator also stands for multiplication.  However, it's usually easy to see
+which meaning is which depending on the context.</p>
+
+<p>What can you do with a pointer?  The most basic thing is that you can
+store a memory address there:</p>
+
+<pre>    int *p;
+    int q = 79;
+
+    p = &amp;q;  /* now 'p' stores the address of the integer variable 'q'. */
+</pre>
+
+<p>Once you have the address of a variable stored in a pointer, you can
+retrieve the contents of the variable by <i>dereferencing</i> the
+pointer:</p>
+
+<pre>    int *p;
+    int q = 79;
+    int r = 21;
+    int sum;
+
+    p = &amp;q;
+    sum = *p + r;  /* = 100 */
+</pre>
+
+<p>The expression <code>*p</code> means to fetch the value at the address
+stored in the pointer <code>p</code>.  This unary use of the <code>*</code>
+operator is called the pointer dereferencing operator.  If there is any
+chance that it might be confused with the multiplication operator, you should
+surround it with parentheses <i>e.g.</i></p>
+
+<pre>    sum = (*p) + r;
+</pre>
+
+<p>These two operations, storing addresses into a pointer and dereferencing
+the pointer, are the two most basic pointer operations.  You can also do
+<i>pointer arithmetic</i>, which we describe below.</p>
+
+<h2>Dynamic memory allocation</h2>
+
+<p>Up to now, when we wanted an object we just declared it inside a function
+e.g.</p>
+
+<pre>    int foo(void)
+    {
+        int bar[10];  /* create an array with ten integers */
+        double d;     /* create a double */
+
+        /* etc. */
+
+    }
+</pre>
+
+<p>Objects created this way are called "automatic" variables.  What this
+means is that the compiler automatically allocates the space for these
+objects when the function begins execution (specifically, on the call stack,
+which we will discuss in the lecture) and frees the memory when the function
+completes its execution.  However, it is also possible, and often necessary,
+to "manually" create new objects on the fly (which is called "dynamic memory
+allocation").  This happens, for instance, when you don't know in advance how
+many data objects you will need.  For dynamic memory allocation we use the
+system function <code>malloc</code>, which is short for "memory allocator".
+<code>malloc</code>, which is defined in <code>&lt;stdlib.h&gt;</code>, has
+the following declaration:</p>
+
+<pre>    void *malloc(size_t size);
+</pre>
+
+<p>This means that you pass it a positive integer representing a size
+(<code>size_t</code> is an alias (typedef) for an integer type) and it
+returns a pointer which points to the newly-allocated block of memory of the
+appropriate size (in bytes).  But what's this "<code>void *</code>" stuff?  A
+pointer to nothing?  That sounds very Zen-like... Actually, <code>void
+*</code> is C's way of saying "a pointer to some block of memory that can
+hold any type of data whatsoever".  So <code>malloc</code> will work
+regardless of what type of data you need.  Only one question remains: how do
+you know how many bytes of data you need?  You could figure it out by
+determining the exact size of all the primitive data types in bytes (which is
+not required to be the same for different machines), or you could do the
+right thing, which is to use the <code>sizeof</code> operator.
+<code>sizeof(int)</code> returns the size of an <code>int</code> in bytes,
+<code>sizeof(double)</code> returns the size of a <code>double</code> in
+bytes, and so on.  So <code>malloc</code> is normally used like this:</p>
+
+<pre>    int *numbers;
+
+    /* Allocate memory for ten ints. */
+    numbers = (int *)malloc(10 * sizeof(int));
+</pre>
+
+<p>The <code>sizeof</code> operator looks like a function call, but it's
+actually a language-defined operator (it can't be a real function, since its
+argument is a type name, not a C expression).  <code>sizeof</code> may not
+return the same size for a given data type on all machines (<i>e.g.</i> ints
+are 4 bytes on some machines and 8 bytes on others), so using
+<code>sizeof</code> helps to keep your code portable.  <code>sizeof</code>
+can also work on pointers or structs (as we'll see in the next lab).</p>
+
+<p>Another language feature we see here is a <i>type cast</i>, which until
+now we've only used to convert between primitive types (e.g. <code>int</code>
+to <code>float</code>).  The <code>(int *)</code> in the line before the
+<code>malloc</code> is a type cast.  Recall that <code>malloc</code> returns
+an object of type "<code>void *</code>", which is a pointer to any type.  The
+type cast says to the compiler, "treat this data object as if it were a
+pointer to an int".  It is important to realize that a pointer to an int can
+be treated as an array as long as the memory for the array has been
+allocated.  In fact, the array indexing operator <code>[]</code> is actually
+just syntactic sugar for pointer arithmetic (see below).</p>
+
+<p>Now you can use <code>numbers</code> as if it were an array of integers,
+because it <i>is</i> an array of integers.  You can set and access elements
+of <code>numbers</code> just as with arrays:</p>
+
+<pre>    numbers[0] = 1;
+    numbers[1] = 1;
+    numbers[2] = numbers[0] + numbers[1];
+    /* etc. */
+</pre>
+
+<p>However, the memory that is allocated by <code>malloc</code> is not taken
+from the same location as the memory that is used for automatic variables.
+Instead, it's taken from a region called the "heap", which is just a region
+of memory set aside for this purpose.  We refer to objects allocated by
+<code>malloc</code> as "heap-allocated" as opposed to automatic variables,
+which are "stack-allocated", because they live on a data structure called the
+"stack".</p>
+
+<p>The most significant difference between heap-allocated and stack-allocated
+objects is this: once you reach the end of a function, stack-allocated
+objects have their memory automatically reclaimed, but heap-allocated objects
+do not.  Instead, you have to manually reclaim the memory for heap-allocated
+objects by calling the <code>free</code> function, which is also defined in
+<code>&lt;stdlib.h&gt;</code>:</p>
+
+<pre>    free(numbers);
+</pre>
+
+<p>If you don't do this, you have a <b>memory leak</b>, which is the bane of
+C programmers.  Memory leaks are one of the worst kind of bugs, because they
+very often do not cause any problems at all.  However, if you are allocating
+a lot of memory which you never free, sooner or later you will run out of
+memory and your program (and maybe your computer) will crash for no apparent
+reason at what appears to be a random location.  Tracking down memory leaks
+is sometimes so difficult that there are a number of commercial tools (such
+as Purify) to help programmers do this, as well as some freely-available
+tools such as <a href="http://valgrind.org/">Valgrind</a>.</p>
+
+<p>For our purposes, the thing to remember is this: if you
+<code>malloc</code> a block of memory, sooner or later you are going to have
+to <code>free</code> it.  However, you don't necessarily have to
+<code>free</code> it in the same function that you <code>malloc</code>'ed it.
+If that was the case, you might as well not use <code>malloc</code> at all,
+since it would be no better than a stack-allocated automatic variable.
+Instead, what typically happens is that one function will <code>malloc</code>
+the memory and another will <code>free</code> it.  We will see this in this
+lab.</p>
+
+<h3>Notes on dynamic memory allocation</h3>
+
+<p><b>Note 1</b>: There is a function related to <code>malloc</code> called
+<code>calloc</code> which is in many ways superior.  Its function prototype
+is:</p>
+
+<pre>    void *calloc(size_t nmemb, size_t size);
+</pre>
+
+<p>It is like <code>malloc</code> except for two features:</p>
+
+<ol>
+<li><p>
+<code>calloc</code> takes two arguments: the number of things you are
+allocating (<code>nmemb</code>) and the size of each thing in bytes
+(<code>size</code>).  In contrast, with <code>malloc</code> you have to
+multiply these two numbers together to give the single argument.
+</p></li>
+
+<li><p>
+After allocating memory, <code>calloc</code> sets all the allocated memory to
+zero values.  This is often useful and can save you from writing a loop to do
+the same thing manually.
+</p></li>
+</ol>
+
+<p>We recommend that you use <code>calloc</code> instead of
+<code>malloc</code>.</p>
+
+
+<p><b>Note 2</b>: If <code>malloc</code> or <code>calloc</code> is unable to
+allocate memory, it will return <code>NULL</code> to indicate that it failed.
+It's important to always check the return values of <code>malloc</code> and
+<code>calloc</code> to make sure that the memory allocation completed
+correctly, or to print a reasonable error message and exit if it
+doesn't. Many C programmers don't do this, unfortunately. <b>You must
+<i>always</i> check the return value of <code>malloc</code> and
+<code>calloc</code> in your programs every time you use them!</b> Failure to
+do so in your labs will result in a redo.</p>
+
+<p>For instance, a good call to <code>calloc</code> might look something like
+this:</p>
+
+<pre>int *numbers;
+numbers = (int *) calloc(10, sizeof(int));
+
+/* Check that the calloc call succeeded. */
+if (numbers == NULL)
+{
+    fprintf(stderr, "Error! Memory allocation failed!\n");
+    exit(1);  /* abort the program */
+}
+/* Do what you want with the numbers array... */
+</pre>
+
+
+<p><b>Note 3</b>: To make it easier for you to avoid memory leaks in your
+program, we're supplying you with a simple memory leak checker (see below for
+the files) to help you find these leaks.  It is a "drop-in" replacement for
+<code>malloc</code>, <code>calloc</code>, and <code>free</code>.  To use it,
+you have to put this at the top of your file:</p>
+
+<pre>    #include &lt;stdlib.h&gt;
+    #include "memcheck.h"
+</pre>
+
+<p>Make sure that those two lines are in exactly that order.  When you
+compile your program, you will also have to compile the file
+"<tt>memcheck.c</tt>" and link it in to the final program.  After that, to
+check for memory leaks, just put the following line in the <code>main</code>
+function right before you exit the program:</p>
+
+<pre>
+    print_memory_leaks();
+
+</pre>
+
+<p>This will print an error message for every place you allocated memory but
+didn't free it.  It will also tell you where you allocated the unfreed
+memory.  This will be very annoying to use at first, but it will also be very
+eye-opening.  You should fix your code until no errors are reported.</p>
+
+<p><b>Note 4</b>: The use of dynamic memory allocation with explicit
+<code>free</code>ing of variables is such a fertile source of hard-to-find
+and/or hard-to-fix bugs in C programs that there exist things called
+<i>garbage collectors</i> (GCs) whose job it is to do this automatically for
+the programmer.  Garbage collectors involve some overhead in terms of
+execution speed and/or total memory use, but they make the programmer's job
+much easier.  For this reason, most programming languages (such as Java,
+Python, and Scheme) provide garbage collection as a standard service to the
+user.  It turns out that having a garbage collector in a language like C
+(which has pointers) is harder than in a language like Java (which doesn't
+have pointers), and this, along with the performance cost, is the reason most
+programmers don't use a GC in their C programs.  However, it's possible, and
+using garbage collectors in C programs is covered in the advanced C track of
+CS 11.  We won't use a GC for our programs in this track.</p>
+
+<h2>Pointer arithmetic</h2>
+
+<p>It is possible, and often necessary, to add and subtract integers from
+pointers.  This is known as <i>pointer arithmetic</i>.  It is a bit of a
+misnomer, since the permitted operations are quite limited.  Here we will
+only discuss adding an integer to a pointer to get another pointer, which is
+by far the most common example of pointer arithmetic.</p>
+
+<p>When you add 1 to a pointer, you generate a new pointer which is
+<code>sizeof(N)</code> larger than the original pointer, where <code>N</code>
+is the data type that the pointer points to.  So if you have:</p>
+
+<pre>    int *numbers = (int *) malloc(10 * sizeof(int));
+</pre>
+
+<p>then &nbsp; <code>numbers + 1</code> &nbsp; really equals &nbsp;
+<code>numbers + sizeof(int)</code> &nbsp; in terms of the addresses
+(<i>i.e.</i> address <code>0x00001000</code> will become
+<code>0x00001004</code> if ints are 4 bytes long), &nbsp; <code>numbers +
+2</code> &nbsp; represents &nbsp; <code>numbers + 2 * sizeof(int)</code> ,
+etc.  This is how arrays are actually implemented in the C language.  The
+syntax &nbsp; <code>numbers[4]</code> &nbsp; is actually shorthand for &nbsp;
+<code>*(numbers + 4)</code>.  This means that we generate the address of the
+fourth integer and then dereference it to get the value of the fourth
+component of the <code>numbers</code> array.</p>
+
+<p>Pointer arithmetic is often used explicitly to iterate through an array.
+To do this, you use the <code>++</code> operator, which in this context is
+the same as adding 1 to the pointer:</p>
+
+<pre>    int i;
+
+    for (i = 0; i &lt; 10; i++)
+    {
+        printf("next number: %d\n", *numbers);
+        numbers++;
+    }
+</pre>
+
+<p>This will print out each element of the <code>numbers</code> array in turn
+(we're using the term array loosely here).  You might well ask why we don't
+just use array indexing.  Well, you can, but using pointer arithmetic in this
+way is sometimes more efficient.  Let's compare the cost of the code above
+with the array-based equivalent:</p>
+
+<pre>    int i;
+
+    for (i = 0; i &lt; 10; i++)
+    {
+        printf("next number: %d\n", numbers[i]);
+    }
+</pre>
+
+<p>In the first case, each time through the loop you have to dereference the
+<code>numbers</code> pointer and increment it.  In the second case, you have
+to compute &nbsp; <code>numbers[i]</code> &nbsp; which is equivalent to
+&nbsp; <code>*(numbers + i)</code>.  Thus, you have to do a pointer addition
+and a dereference.  Incrementing a pointer by one is usually faster than
+adding an arbitrary integer to it.  With multidimensional arrays or arrays of
+structs, the difference can often be quite significant.</p>
+
+<p>As a general rule, <b>don't</b> use pointers this way unless you've
+determined that there will be a sizeable speed increase (except in this
+assignment!).  We've seen cases where replacing array indexing with pointer
+manipulations in a critical section of code has sped up a program by a factor
+of five.  We've also seen many more cases where it made little or no
+difference.</p>
+
+<h2>Dangers of pointers</h2>
+
+<p>Letting programmers directly access pointers is dangerous.  When a pointer
+is set to a value created by <code>malloc</code>, the new storage contains
+arbitrary values (we say it contains "garbage") at each location.  If a C
+programmer dereferences any location in this storage before data has been put
+in it, then there is no predicting what the result might be.  This is why we
+recommend you use <code>calloc</code> (see above) instead of
+<code>malloc</code> in your code -- you then know that all the memory values
+are zero.</p>
+
+<p>In addition, if you define a pointer value and try to dereference it
+before any valid address has been put into the pointer, the computer will
+often try to access memory that it isn't allowed to, leading in most cases to
+a <i>core dump</i>, which means that the program aborts and dumps a huge file
+called <code>core</code> to your directory (the core file can be useful for
+debugging).  Worse, the memory accessed may actually be memory that is in use
+by the program, which will not lead to a core dump but to memory corruption,
+a source of some particularly nasty bugs that will only manifest themselves
+much later in the program.</p>
+
+<p>Programming with pointers is programming without a net.  You have to know
+exactly what you're doing, or your program will crash.</p>
+
+<hr>
+
+<h2>Program to write</h2>
+
+<p>Now, finally, we get to the program you have to write ;-) &nbsp; However,
+<b>if you haven't read the above sections, go back and read them now, because
+you're responsible for them.</b> Also, there are actually <u>two</u> versions
+of the program that you'll have to write (see below).</p>
+
+<h3>One-dimensional cellular automata</h3>
+
+<p>A cellular automaton (CA) consists of a collection of cells which can hold
+data values, generally organized into some regular geometric arrangement
+(usually a square grid or a line).  A one-dimensional CA (1dCA) has all the
+cells arranged in a line.  The values in the cells change over time.  Each
+cell's value at the next time interval depends on its current value as well
+as the value of its two immediate neighbors.  We set the first and last cells
+to be always empty.  In this case you will be implementing a 1dCA with two
+states (full and empty, which you should implement as 1 and 0).</p>
+
+<p>The 1dCA you will implement has the following update rule:</p>
+
+<ol>
+<li>If the current cell is empty, and one of the two adjacent cells is full
+(but not both), set the current cell to be full.</li>
+<li>Otherwise set the current cell to be empty.</li>
+</ol>
+
+<p>You have to iterate through all the cells to generate the new pattern (the
+next "generation").  You need to have two arrays to store the data, because
+you are not allowed to modify one generation until the next generation has
+been completely computed.  The 1dCA should be randomly seeded with 1's and
+0's to start with (try having about 50% of the cells 1s initially).  If
+successive generations are printed on a screen, one generation per line, with
+(say) a "." for 0s and a "*" for 1s, you will get a chaotic-looking pattern
+that has a fractal-like quality to it and is quite pretty.</p>
+
+<p>Be sure you get the correct update rule in your program; every year, some
+students get some part of it wrong, and have to redo the assignment.  If the
+pattern generated by your program doesn't look cool, you've almost certainly
+done something wrong.</p>
+
+<h3>Command-line arguments</h3>
+
+<p>Your program should take two command-line arguments: the numbers of cells
+in the 1dCA and the number of generations to compute.  The program should
+print out this many generations to the screen.  Use dynamic memory allocation
+to create the arrays you need to hold the 1dCA data.  Make sure you check the
+return value of every <code>malloc</code> or <code>calloc</code> call and
+exit with an error message if the call returns <code>NULL</code>.  Also make
+sure you free your newly-allocated data before your program exits.</p>
+
+<p>NOTE: if your program doesn't get the correct number of arguments, it
+should exit with a usage message as usual.  Specifically, <b>make sure you
+test what the program does when no arguments are given!</b>  Every year, a
+large percentage of the programs core dump when no arguments are given; this
+is just bad programming.</p>
+
+<p>Note that you can do this entire program without using pointer arithmetic.
+To give you practice in using pointer arithmetic, write the function which
+updates the board in two ways:</p>
+
+<ol>
+<li>only using array operations;</li>
+<li>only using pointer operations.</li>
+</ol>
+
+<p>Define two separate programs for these two cases (with different names).
+The programs will share all of their code except for the board updating
+function.  For the second program, you <b>don't</b> have to use explicit
+pointer arithmetic in any functions other than the update function; use array
+operations everywhere else.  Also note that for both programs you have to use
+dynamic memory allocation when allocating the arrays (because you don't know
+the size of the arrays in advance).</p>
+
+<p><b>Don't just translate the array operations into equivalent pointer
+operations!</b> Instead, use the iteration idiom shown above, suitably
+modified to work with your program.  Specifically, you should use
+<i>three</i> pointers to iterate through the array: for any given value of an
+index variable <code>i</code>, one points to <code>cell[i-1]</code>, one to
+<code>cell[i]</code> and one to <code>cell[i+1]</code> (assuming that the
+array is called <code>cell</code>).  Each of the three pointers will get
+incremented once for each new cell value that is being computed.  In
+addition, you'll need another pointer into another array which is the array
+you're writing into.  In this way you won't have to use array operations at
+all, and the only pointer arithmetic you'll need is to increment by one
+(<code>++</code>).  This requirement applies throughout the entire function;
+even if you have to copy an array at the end, use pointer operations to do
+this.  Once again, don't just translate the array code into the equivalent
+pointer code; every year, several students in this track do that, and they
+end up having to redo the assignment.</p>
+
+<p>As always, try to decompose your program into small, easy-to-understand
+functions instead of having a few huge functions.  Make each function do one
+thing only (don't mix printing with updating, for instance).</p>
+
+<p>Don't forget to include the memory leak checking code in your file (see
+above).  The assignment will not be graded until your program has no memory
+leaks.</p>
+
+<hr>
+
+<h2>Other stuff to do</h2>
+
+<p>Write your own <code>Makefile</code> for this lab, based on the examples
+you've seen before.  Each of the two programs you have to write should have a
+different name.  You should have separate targets to compile each program,
+and for each program you should have separate targets for the executable
+program and for the object code which you compile from the source code file.
+In other words, if your array program source code file is called
+"<code>1dca_array.c</code>" you should have targets for
+"<code>1dca_array</code>" and for "<code>1dca_array.o</code>", and the
+"<code>.o</code>" file will be a dependency for the executable file and will
+be used to compile it.  There should also be a target for
+"<code>memcheck.o</code>", the memory leak checker, which will be built from
+"<code>memcheck.c</code>"; "<code>memcheck.o</code>" will also be a
+dependency for the two executables.  Make sure you get all the dependencies
+right (it isn't hard; just think about what every target depends on
+<i>i.e.</i> what files would, if changed, require the target to be
+rebuilt)</p>
+
+In addition, you should also have an "<code>all</code>" target that compiles
+both programs (<i>i.e.</i> you type "<code>make all</code>" and both programs
+are built).  It's convenient to make the "<code>all</code>" target the first
+target in the program, so just typing "<code>make</code>" will build both
+programs.  <b>Note that you can (and should) write the "<code>all</code>"
+target in a single line (hint: what are its dependencies?).</b> You should
+also have a "<code>clean</code>" target that removes all compiled files
+(object files and executables), and a "<code>check</code>" target that calls
+the style checker on both programs (note that the style checker can take
+multiple filenames as arguments).<p></p>
+
+<p>Name your programs anything you want, except don't call them "life" or
+some variant of the word "life".  "Life" refers to a specific kind of
+two-dimensional cellular automaton, not the one-dimensional cellular
+automaton we're writing here.</p>
+
+<hr>
+
+<h3>Supporting files</h3>
+
+<ol>
+<li><p>
+<a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/memcheck.h">memcheck.h</a> (header file for the memory
+leak checker).
+</p></li>
+
+<li><p>
+<a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/memcheck.c">memcheck.c</a> (the memory leak checking
+code itself).
+</p></li>
+
+<li><p>
+The ever-annoying <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_check">style checker</a>.
+</p></li>
+
+</ol>
+
+
+<hr>
+
+<h2>To hand in</h2>
+
+<p>The source code for the two versions of your program, along with your
+<code>Makefile</code>.</p>
+
+
+<hr>
+
+<h2>References</h2>
+
+<ul>
+
+<li><p>Darnell and Margolis, chapter 7.</p></li>
+
+<li><p>K&amp;R, chapter 5.</p></li>
+
+<li><p>
+Some background information on <a href="http://math.hws.edu/xJava/CA/CA.html">one-dimensional cellular
+automata</a>.
+</p></li>
+
+</ul>
+
+<hr>
+
+
+
+</body></html>

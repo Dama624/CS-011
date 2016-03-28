@@ -1,0 +1,798 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 3</title>
+</head>
+
+<body linkifytime="18" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 3</h1>
+</center>
+<hr>
+
+<h2>Goals</h2>
+
+<p>In this assignment you will learn about C arrays, C strings and how to
+make your program interact with the unix (<i>i.e.</i> Linux) command line.
+You will then write a simple sorting program.  Finally, you will learn some
+useful strategies for testing code.</p>
+
+
+<hr>
+
+<h2>Language concepts covered this week</h2>
+
+<ul>
+<li>arrays</li>
+<li>strings</li>
+<li>command-line argument processing</li>
+</ul>
+
+<hr>
+
+<h2>Other concepts covered this week</h2>
+
+<ul>
+<li>Makefiles again.</li>
+<li>Using <b>assert</b> for debugging.</li>
+<li>Test scripts again.</li>
+</ul>
+
+<hr>
+
+<h2>Reading</h2>
+
+<p>Please read <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/cmdline_args.html">this page</a> on
+command-line argument processing.</p>
+
+<!-- FIXME: Change this when the new textbook comes in... -->
+<!--
+<h2>Reading</h2>
+
+<p>If you haven't already read chapter 1 of K&amp;R, now would be a good time to
+do so.  Also skim chapter 5, concentrating on the material on arrays (as
+opposed to pointers, which we'll get to later).</p>
+-->
+
+<hr>
+
+<h2>Arrays in C</h2>
+
+<p>Arrays in C are declared as follows:</p>
+
+<pre>    int foo[10];  /* Declares an array called 'foo' with space for ten ints. */
+</pre>
+
+<p>and accessed as follows:</p>
+
+<pre>    int i;
+
+    ...
+
+    i = foo[4];  /* This gets the element from 'foo' at index 4. */
+</pre>
+
+<p>Note that arrays in C start at element 0, <i>not</i> element 1.
+Therefore, in this case, the last element in the array would be
+<code>foo[9]</code>.  Note also that array elements are not initialized to be
+anything, so they should be assumed to hold garbage until you assign a value
+to them.  Also, you need to realize that if you try to access an element "off
+the end" of the array (<i>e.g.</i> the 100th element of the ten-element array
+<code>foo</code> in the code above), you will get no compiler warnings, but
+you'll probably get a core dump when the program runs.  This is part of C's
+no-error-checking I-assume-you-know-what-you-want philosophy of
+programming.</p>
+
+<p>Arrays can also be two-dimensional, three-dimensional, etc.  The syntax is
+analogous:</p>
+
+<pre>    int foo[10][5];
+    int i;
+
+    ...
+
+    i = foo[4][2];
+</pre>
+
+<p>In addition, arrays can be <i>initialized</i> when they are declared:</p>
+
+<pre>    int foo[5] = { 1, 2, 3, 4, 5 };
+
+    int bar[2][3] =
+    {
+      { 1, 2, 3 },
+      { 4, 5, 6 }
+    };
+</pre>
+
+<p>You will need to use array initialization in the next lab.  Finally,
+you can pass arrays to a function like you would pass a normal variable:</p>
+
+<pre>    void munge(int array[])
+    {
+       /* code that uses the values in array[] */
+    }
+
+    /* more code... */
+
+    int main(void)
+    {
+        int stuff[10];
+
+        /* more code... */
+
+        /* Pass the 'stuff' array to the function 'munge'. */
+        munge(stuff);
+
+        /* etc. */
+    }
+</pre>
+
+<p>However, when you do this, you should be aware that you are <i>not</i>
+passing a copy of the array to the function but the array itself.  That means
+that if you modify the array in the function it will remain modified when you
+return from the function.  This will be useful in the assignment below.  The
+reason for this behavior is due to the fact that C arrays are actually
+represented as pointers; we'll cover this in later lectures and
+assignments.</p>
+
+<hr>
+
+<h2>Program to write</h2>
+
+<p>Write a program called <code>sorter</code> which behaves as follows:</p>
+
+<ol>
+
+<li><p>If there are no command-line arguments at all when the program is run,
+the program should print out instructions on its use (a "usage message"; see
+<a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/cmdline_args.html">this page</a>).  There should only be one
+usage message, and it must follow the standard conventions (see the previous
+link).  Note that the optional command-line arguments (see below) must be
+included as part of the usage message.</p></li>
+
+<li><p>The program will be able to accept up to 32 numbers (integers) on the
+command line.</p></li>
+
+<li><p>If there are more than 32 numbers on the command line, or no numbers
+at all, the program should print out the usage message and exit.</p></li>
+
+<li><p>If the optional command-line arguments "<code>-b</code>" or
+"<code>-q</code>" are found <b>anywhere</b> in the command line, change the
+behavior of the program as described below.</p></li>
+
+<li><p>If any of the command-line arguments to the program are not integers
+or one of the two optional command-line arguments, your program's response is
+undefined -- it can do anything.  (<i>i.e.</i> you shouldn't worry about
+having to handle anything but integer arguments or the two command-line
+options).  The way to deal with this is as follows: for each argument, first
+check to see if it's one of the command-line options.  If so, proceed
+accordingly.  If not, assume it represents an integer and convert it using
+the <code>atoi()</code> function (see below).</p></li>
+
+<li><p>Sort the numbers using either the minimum element sort or the bubble
+sort algorithm (see below).  <b>Do not use a global array to hold the
+integers</b>; use a locally-defined array in <code>main</code> and pass the
+array to the sorting function.  Define separate functions for both sorting
+algorithms.  Use <code>assert</code> (see below) to check your sorting
+function for correctness.</p></li>
+
+<li><p>Print out the numbers from smallest to largest, one per line.</p></li>
+
+</ol>
+
+<h3>The Sample Output</h3>
+
+<p>If the above doesn't make sense, this is what your program should look
+like (bold is what you would type, and % is the Unix prompt):</p>
+
+<pre>    % <b>sorter 5 9 -2 150 -95 23 2 5 80</b>
+    -95
+    -2
+    2
+    5
+    5
+    9
+    23
+    80
+    150
+    % <b>sorter</b>
+    usage: sorter [-b] [-q] number1 [number2 ... ] (maximum 32 numbers)
+    %
+</pre>
+
+<h3>Command-line arguments</h3>
+
+<p>Your program begins in the <code>main</code> function, which up until now
+has looked like this:</p>
+
+<pre>    int main(void)
+    {
+       /* your code here */
+       return 0;
+    }
+</pre>
+
+<p>but will now look like this:</p>
+
+<pre>    int main(int argc, char *argv[])
+    {
+       /* your code here */
+       return 0;
+    }
+</pre>
+
+<p>So let's take the first line apart.  There are a few parts to this:</p>
+
+<dl>
+
+<dt><b><code>int</code></b></dt>
+<dd><p>Declares that this function returns an integer.</p></dd>
+
+<dt><b><code>main</code></b></dt>
+<dd><p>Declares this function's name, <code>main</code>.  Recall that C
+programs always begin executing in the <code>main</code> function.</p></dd>
+
+<dt><b><code>int argc</code></b></dt>
+<dd><p><code>argc</code> is equal to the number of elements of
+<code>argv</code>.</p></dd>
+
+<dt><b><code>char *argv[]</code></b></dt> <dd><p>Okay, this one's a bit
+trickier.  The second argument, <code>argv</code>, is an array of "<code>char
+*</code>"s.  "<code>char *</code>" is C's way of handling character strings,
+which are represented as arrays of characters where the last character is
+ASCII character 0 (often written as <code>'\0'</code>).  This will make more
+sense when we have discussed pointers in a couple of weeks. <code>argv</code>
+contains one string for each of the command line arguments that your program
+is run with.  More on this below.</p></dd>
+
+</dl>
+
+<p>To give an example of this, let's take the command line from the example
+above:</p>
+
+<pre>    % sorter 5 9 -2 150 -95 23 2 5 80
+</pre>
+
+<p>This would produce the following values in <code>argc</code> and
+<code>argv</code>:</p>
+
+<pre>    argc        10
+    argv[0]    "sorter"
+    argv[1]    "5"
+    argv[2]    "9"
+    argv[3]    "-2"
+    argv[4]    "150"
+    argv[5]    "-95"
+    argv[6]    "23"
+    argv[7]    "2"
+    argv[8]    "5"
+    argv[9]    "80"
+</pre>
+
+<p>Note that <code>argv[0]</code> holds the name of your program, and that
+the first user-supplied argument is in <code>argv[1]</code>.  <em>Remember
+this!</em> (One thing this implies is that <code>argc</code> is 1 greater
+than the number of user-supplied arguments.)  Notice also that a command-line
+argument of "5" is <b>not</b> an integer; it's a string that can be converted
+into an integer.  Which leads us to...</p>
+
+<h3>Converting strings to integers</h3>
+
+<p>Okay, so how do we turn these argv strings into integer values?  Well,
+there's this handy function called <code>atoi</code> ("<b>a</b>scii <b>to</b>
+<b>i</b>nteger").  For example, <code>atoi("5")</code> equals 5.  In order to use
+<code>atoi</code>, you need to put the following line at the top of your
+program:</p>
+
+<pre>    #include &lt;stdlib.h&gt;
+</pre>
+
+<p><code>atoi</code> is a pretty dumb function; if you pass it a bogus value
+it'll just return 0 instead of signalling any kind of error.  That means that
+you need to check for the optional command-line arguments "<code>-b</code>"
+and "<code>-q</code>" before trying to convert a command-line argument to an
+<code>int</code>.
+
+</p><h3>The minimum element sort algorithm</h3>
+
+<p>Alright, so what is this "minimum element sort" algorithm?  The basic idea is
+that the smallest element in the array will be the zeroth element in the
+sorted array, the second-smallest will be the first element, etc.  Here's how
+it works:</p>
+
+<p>Let <code>array</code> be the array of integers, and <code>num_elements</code> be
+the total number of elements in <code>array</code>.</p>
+
+<ol>
+
+<li><p>Start with <code>start = 0</code> (for the index of the zeroth
+element).</p></li>
+
+<li><p>Set <code>smallest = start</code> (smallest stores the index of the
+smallest element encountered so far).</p></li>
+
+<li><p>Run through a loop with the variable <code>index</code> going from
+    <code>start</code> to <code>num_elements</code></p>
+
+  <ul>
+  <li><p>If <code>array[index] &lt; array[smallest]</code>, set &nbsp; 
+  <code>smallest = index</code>.</p></li>
+  </ul>
+</li>
+
+<li><p>Once the loop ends, swap <code>array[start]</code> and <code>array[smallest]</code>
+(moving the smallest element found to the beginning of the array you
+searched).</p>
+</li>
+
+<li><p> 
+Increment <code>start</code>, and if <code>start &lt; num_elements</code>, go back to
+step 2.  <b>Do not</b> use a <code>goto</code> statement, however; use another
+loop.
+</p></li>
+
+<li><p>
+If <code>start &gt;= num_elements</code> then you're done and the array is
+sorted.
+</p></li>
+
+</ol>
+
+<h3>Adding command-line options</h3>
+
+<p>You will add the ability to process two optional command-line arguments
+(usually called "command-line options") to your program.  These options will
+be <code>-b</code> and <code>-q</code>.  To test for these, you'll need to be
+able to compare strings.  The function <code>strcmp(str1, str2)</code>
+returns <code>0</code> if <code>str1</code> and <code>str2</code> are the
+<i>same</i> and nonzero otherwise.  So to check if the first argument is
+<code>-b</code>, you would have to do something like:</p>
+
+<pre>    if (strcmp(argv[1],"-b") == 0)
+    {
+         /* put stuff here */
+    }
+</pre>
+
+<p>To use the <code>strcmp</code> function, you need to put the following
+line with the other <code>#include</code>s at the top of your file:</p>
+
+<pre>    #include &lt;string.h&gt;
+</pre>
+
+<p><b>WARNING!</b> Do <b>not</b> do this:</p>
+
+<pre>    if (argv[1] == "-b")  /* WRONG! */
+    {
+         /* put stuff here */
+    }
+</pre>
+
+<p>This doesn't work; you can't compare strings using the <code>==</code>
+operator.  The reason for this will be made clear when we talk about
+pointers.</p>
+
+<p>You should add information on any command-line options you allow to the
+usage information that is printed out when there are no arguments.
+<b>NOTE</b>: As mentioned above, now would be a really good time to read <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/cmdline_args.html">this page</a> on how to handle command-line
+arguments and optional arguments.  You are required to abide by these
+conventions for this and all future assignments; if you don't, we will
+make you redo the assignment.</p>
+
+<p>If the user supplies one of the command-line options, you must <i>not</i>
+treat it as part of the list of integers.  Also, <b>you must <i>not</i>
+assume that the command-line options are going to be entered before the
+numbers</b>; it should be possible to enter them anywhere after the program
+name (and the test script will check for this).  Finally, <b>it's legal to
+enter the command-line options more than once</b>, although this won't make
+any difference after the first time.  <b>You don't need complicated code to
+achieve this!</b> You can process all of the command-line arguments in a
+single pass through the <code>argv</code> array.  Many students write
+absurdly complicated code to handle the command-line arguments, and it's just
+a waste of effort.  In other words, it's much easier than you probably think
+it is.</p>
+
+<p>One thing you <b>do</b> have to make sure of is that you aren't adding
+values into the array of numbers at indices that are too large.  This array
+can only be 32 elements long at most, so if you try to assign to indices 32
+or greater, it's an error even if it seems to work properly.  <b>NOTE</b>: It
+should be clear why indices greater than 32 are off-limits, but why do you
+think it's illegal to assign to index 32 exactly?</p>
+
+<p>To keep things simple, you are only required to handle integers or the two
+specific command-line options <code>-b</code> and <code>-q</code>, and any
+command-line argument (not counting the program name) that isn't
+<code>-b</code> or <code>-q</code> can be assumed to be an integer.</p>
+
+<p>Here are the command-line options and what they mean:</p>
+
+<ul>
+
+<li><p> The "<code>-b</code>" option means that you should sort using a
+Bubble Sort instead of a Minimal Element Sort algorithm.</p>
+
+<p>Bubble Sort, like Minimal Element Sort, is not a very efficient algorithm.
+Much more efficient algorithms (such as Quicksort) exist, but they are best
+left until after you've had some experience with recursion, which is coming
+up next lesson :-) Also, the C standard library has a <code>qsort</code>
+(Quicksort) library function, but to use it you need to understand function
+pointers, which we won't cover in this track (although it's not that hard).
+</p></li>
+
+<li><p> The "<code>-q</code>" option suppresses the output (<i>i.e.</i>
+nothing gets printed).  Why would we want to do this?  See the next section.
+</p></li>
+
+</ul>
+
+<p>Information on different sorting algorithms, including bubble sort, can be
+found all over the web, in algorithms textbooks, written on bathroom walls,
+scrawled on fortune cookies, etc. etc.</p>
+
+<h3>More on command-line options</h3>
+
+<p>Here are some guidelines (which we expect you to follow) for implementing
+the command-line option processing in this program.  They will make it much
+easier to get a working program that passes the test script.</p>
+
+<ul>
+
+<li><p>First off, do not change the elements in the <code>argv</code> array
+at all!  There is no need to.  Some people try to shuffle values in the
+<code>argv</code> array, as if you need to pass <code>argv</code> to the
+sorting functions.  You don't.  What you need to do is to create a brand new
+array that can hold all the numbers in the <code>argv</code> array.  Altering
+the <code>argv</code> array is legal, but it's poor programming
+style.</p></li>
+
+<li><p>Second, this new array has to be large enough to hold all the numbers
+on the command line, and no larger.  Given what you all know now, this means
+that it should be 32 elements long.  You may not use all of them (that's
+fine), but they will be there in case someone enters a command line with 32
+numbers. Later, I'll show you how to create arrays that have exactly the
+right number of elements, based on the input.  Also, you aren't allowed to do
+this:</p>
+
+<pre>    int n = 10;
+    int array[n];  <b>/* Invalid */</b>
+</pre>
+
+<p>This isn't legal C, so if you do this, you'll get a compiler warning, and
+my policy is to not allow programs that generate compiler warnings.  In
+addition, you can't just use a humongous array, like this:</p>
+
+<pre>    int array[1000];
+</pre>
+
+<p>This kind of thing is just programming to make the test script work,
+usually for the wrong reason.  So 32 is as big an array as I'll allow.</p>
+
+</li>
+
+<li><p>Third, you have to check if there are <b>more</b> than 32 numbers in
+the command line, which means 32 values that are neither the program name
+(<code>argv[0]</code>) nor <code>-b</code> nor <code>-q</code>.  If there are
+more than 32 numbers, the program should exit with a usage message and return
+a non-zero value from <code>main()</code>.  The test script will check for
+this.  In addition, make sure that your program doesn't at any point add an
+element to the numbers array at an invalid index <i>i.e.</i> an index larger
+than 31.  Even if the program passes the test script, this is a serious
+error, because you're writing into memory that isn't part of the
+array.</p></li>
+
+<li><p>Fourth, the <code>-q</code> or <code>-b</code> arguments can occur
+_anywhere_ on the command line except in <code>argv[0]</code> (you should
+know why they can't occur in <code>argv[0]</code>), and there can even be
+more than one <code>-b</code> or <code>-q</code> arguments in the command
+line.  Multiple <code>-b</code> or <code>-q</code> arguments don't do
+anything beyond what single ones do.  The test script checks for this
+too.</p></li>
+
+<li><p>Finally, despite all these guidelines, this is actually a pretty easy
+problem; you can do everything in a single <code>for</code> loop.  If your
+solution is very complicated, you are almost certainly doing something
+wrong.</p></li>
+
+
+</ul>
+
+<h3>Avoiding magic numbers</h3>
+
+<p>A "magic number" is a number that is just plopped into a program with no
+context, and especially a number like this that is repeated several times in
+a program.  In this lab, the number "32" hard-coded into the program would be
+a magic number.  Magic numbers are almost always bad, for two reasons:</p>
+
+<ol>
+
+<li>They tell the reader nothing about why this number is this value.</li>
+
+<li>If you decide to change it to a different value, you have to change it
+in multiple places, and it's easy to forget one, leading to hard-to-find
+bugs.</li>
+
+</ol>
+
+<p>It's extremely easy to avoid using magic numbers; just use the
+<code>#define</code> preprocessor instruction to define a meaningful symbolic
+name for the magic number, and <b>only</b> use the symbolic name in the
+program.  That way, if you want to change the number's value, you only have
+to do it in one place (by changing the <code>#define</code> statement).</p>
+
+<p>We will take marks off for using magic numbers in this lab and in all
+subsequent labs, so make sure you don't use them.  <b>Specifically, the
+number "32" should only occur <u>once</u> in your entire program, inside a
+<code>#define</code> statement!</b></p>
+
+
+<h3>Commenting</h3>
+
+<p><b>Don't forget to write good comments!</b> From now on, we'll expect your
+commenting to be top-notch, unless (as in some later labs) we supply you with
+a code template that already has the comments (in which case we'll expect
+that you've read and understood the comments, and that your code is
+consistent with them).</p>
+
+<p>Specifically, we want to see:</p>
+
+<ul>
+
+<li><p>A comment at the top of the source code file explaining what the
+program does.</p></li>
+
+<li><p>A comment before each function (except for <code>main</code>) which
+explains what the function does, what its arguments mean, and what its return
+value represents (if it has a return value).</p></li>
+
+<li><p>Comments inside functions explaining how the code works, unless it's
+totally obvious.  For this lab, for instance, you'll want to explain how your
+sorting functions work.  It's better to put this inside the function than
+before the function, because knowledge of how it works isn't usually
+important for using the function (<i>i.e.</i> it's not part of the function's
+interface, just its implementation).</p></li>
+
+</ul>
+
+<p>You may think this is too much work; it isn't.   The amount of time it
+takes you to write good comments is usually only a fraction of the time it
+takes you to write good code.  In fact, many programmers advocate writing
+comments <b>before</b> writing code; the comments then serve as a kind of
+"scaffolding" around which you build your program.  Writing the comments
+first forces you to think clearly about what you want to achieve, instead of
+just randomly writing code and stopping when it seems to work.</p>
+
+<hr>
+
+<h2>Testing your program</h2>
+
+<p>Many programmers can write working code, but few programmers test their
+code systematically to see if it actually does work.  It is important to
+learn different strategies for doing this, because it can not only improve
+the quality of your code, but also the quality of your life.  If you don't
+believe me, that's because you haven't spent enough four-hour+ sessions
+trying to track down a single bug caused by a typo somewhere in your program.
+Don't laugh; it happens all the time, and it happens more with C than with
+any other computer language (except maybe C++).  What we want to do here is
+see how we can make it happen less often.</p>
+
+<h3>The joy of <code>assert</code></h3>
+
+<p>Using <code>assert</code> is probably the single easiest way to improve
+the quality of your code, and one of the least used.  The idea behind
+<code>assert</code> is to make your program <i>self-checking</i>.  Let's say
+you've just coded up an incredibly hairy algorithm which will balance the
+budget, cure cancer, send mankind to the stars and do other wonderful things.
+How do you know that your code doesn't have a bug?  And if it does have a
+bug, how do you find it?</p>
+
+<p>Well, there are probably points in your program where you expect certain
+things to be true.  For instance, in the sorting program described above,
+after you've completed the sort, you expect that the array of integers is, in
+fact, sorted.  If you could check this right after you did the sort, then if
+your sorting algorithm ever fails on any input, you will know about it right
+away.  <code>assert</code> makes this easy.  Using <code>assert</code> looks
+like this:</p>
+
+<pre>    int i;
+
+    /* your algorithm goes here... */
+
+    assert(i == 10);  /* assert that the integer variable i is equal to 10. */
+</pre>
+
+<p>In the above case, if the program reaches the <code>assert</code>
+statement and <code>i</code> is equal to 10, the program continues on
+executing; the <code>assert</code> statement has no effect.  However, if
+<code>i</code> is not equal to 10, the program aborts (exits), telling you
+the exact line in the file where the error occurred.  "Whoa!", you're
+probably saying, "that's a bit extreme, isn't it?"  Well, the point is to use
+<code>assert</code> for situations where you <i>know</i> something has to be
+true assuming that your algorithm is correct.  If it isn't true, your program
+has failed, and all bets are off.  (In actual fact, it's fairly easy to write
+custom versions of <code>assert</code> that don't abort but just print a
+nasty message and continue.)  The <code>assert</code> statement is referred
+to as an <i>assertion</i>, logically enough.</p>
+
+<p>You might also be asking: why don't I just write this:</p>
+
+<pre>    int i;
+
+    /* your algorithm goes here... */
+
+    if (i != 10)
+    {
+        abort();  /* or exit(), or some similar function */
+    }
+</pre>
+
+<p>instead of using that <code>assert</code> function?  Well, aside from the fact
+that <code>assert</code> is more concise, and that <code>assert</code> prints out
+line numbers where the assertion failed, the big advantage of assertions is
+that they can be <i>switched off</i>.  Even though assertions don't usually
+slow your code down appreciably, there is some cost, which goes up the more
+assertions you use.  Let's say you've used assertions to debug your code, and
+you reach a point where you are highly confident that your algorithm is
+correct.  At this point you may want your algorithm to run as fast as
+possible, and not waste time checking assertions that you are sure will
+always be true.  In other words, you want to leave the assertions out in the
+compiled code, but you don't want to remove the lines with the
+<code>assert</code> statements in them in case you modify the code later and need
+to debug it again.</p>
+
+<p>It turns out that by adding the magic word <b><code>-DNDEBUG</code></b> as
+an argument to <code>gcc</code> when you compile the C code, the assertions
+will be removed from the code before compilation, so your code will run at
+maximum speed.</p>
+
+
+<h3>Using <code>assert</code> in your program</h3>
+
+<p>To use <code>assert</code>, make sure you add this to the top of your file:</p>
+
+<pre>    #include &lt;assert.h&gt;
+</pre>
+
+<p>In your sort function(s), write this right at the end of the function:</p>
+
+<pre>    /* Check that the array is sorted correctly. */
+
+    for (i = 1; i &lt; num_elements; i++)
+    {
+        assert(array[i] &gt;= array[i-1]);
+    }
+</pre>
+
+<p>where <code>num_elements</code> is the number of elements in the array and
+<code>array</code> is the name of the array.  Notice that here we're putting
+the <code>assert</code> statement in a loop.  This bit of code is technically
+called a <i>postcondition</i>; a postcondition is what is required to be true
+after a function has completed.  Some computer languages, such as Eiffel,
+have very sophisticated systems for checking postconditions (as well as
+<i>preconditions</i> and various kinds of <i>invariants</i>); these languages
+make it easier to write correct code than C does.  Here, the postcondition
+will cause an assertion failure if the array isn't sorted at the end of the
+sorting function, which is what we want.</p>
+
+<p>Notice how the postcondition is just three lines of trivial code, as
+compared to the sort routines themselves, which will probably be considerably
+longer.  This illustrates the general principle that it's much easier to
+check if something is right than to make it right in the first place.
+Assertions are easy to write; use them!</p>
+
+<p><b>NOTE</b>: It may seem wasteful to write the same assertion code at the
+end of both sorting functions, but that's where I want you to write it, and
+not <i>e.g.</i> in the <code>main()</code> function.  That's because you will
+eventually be writing larger programs which span many files, and functions
+you write will be used outside of the file they are written in.  It's
+important for functions to be self-contained as much as possible, and if the
+assertion checking is built in to a sorting function, then anyone using that
+function will automatically get the benefit of the assertion checking.</p>
+
+
+<h3>Running the test script</h3>
+
+<p>Now you get to know why you added the <code>-q</code> option to your
+program.  The reason for the <code>-q</code> option is to make the program
+only print output if the assertion fails.  We can use this to write a test
+script to check the program.</p>
+
+<p>We are supplying you with a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab3/Makefile">Makefile</a> and a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab3/run_test">test script</a> for your program.  The test script is
+written in a computer language called <a href="http://www.python.org/">python</a>.  Python is a scripting language
+which is excellent for many tasks, one of them being writing test scripts.
+Python is available on most Linux systems, including on all of the CS cluster
+machines.  What you should do is to download the test script into the same
+directory that your lab 3 C code is located in.  Use the "save page as"
+feature of your browser; don't try to cut and paste the code into a text
+editor, because the odds are 100-to-1 that it won't work properly.  When the
+file is in the correct location, make it executable by typing:</p>
+
+<pre>% chmod +x run_test</pre>
+
+<p>where <code>%</code> is the terminal prompt.</p>
+
+<p>What the test script does is to generate a series of random inputs
+to the program and run the program with the <code>-q</code> option.  The test
+script is invoked by typing</p>
+
+<pre>% make test</pre>
+
+<p>at the terminal prompt.  The test script will tell you what it's doing as
+it proceeds.  If your sort routines ever fail, you will see the output of
+<code>assert</code>, telling you what line the failure occurred at.  The test
+script will run the program using the Minimal Insertion Sort as well as the
+Bubble Sort.  If something else goes wrong (<i>e.g.</i> your command-line
+processing is faulty, or a core dump occurs), the test script will report an
+error, along with the program invocation that caused it.  It will not tell
+you exactly what error occurred, but by re-running the erroneous invocation
+(by cutting and pasting into your terminal window) you should be able to
+figure it out yourself.  If all goes well, the test script will report
+success.</p>
+
+<p>Note that if there is a bug in your assertion code itself, all bets are off.
+However, as mentioned above, writing correct assertions is pretty trivial
+(especially since we've done it for you :-)).</p>
+
+<hr>
+
+<h2>Supporting files</h2>
+
+<ul>
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab3/Makefile">Makefile</a>.</p>
+
+<p>Once again, be sure that all the command lines in the Makefile start with
+tabs, or they will not work.</p></li>
+
+<li><p>
+The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab3/run_test">test script</a>.</p>
+
+<p>Once again, in order to get this to work, you have to do</p>
+
+<pre>% chmod +x run_test
+</pre>
+
+<p>after downloading this file, in order to make it executable.  From now on,
+we'll assume you'll remember this (and the Makefile tab rule above) for
+future assignments.
+</p></li>
+
+<li><p>The <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_check">style checker</a>.  To invoke the
+style checker you can just type</p>
+
+<pre>% make check
+</pre>
+
+<p>at the prompt (assuming that the Makefile is in the same
+directory).</p></li>
+
+</ul>
+
+<p>Again, remember to read <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/cmdline_args.html">this page</a>
+for more information on how to handle command-line arguments effectively.</p>
+
+<hr>
+
+<h2>To hand in</h2>
+
+<p>The <code>sorter.c</code> file.  We will check to see that it compiles,
+passes the style checker and passes the test script.</p>
+
+<hr>
+
+<h2>References</h2>
+
+<ul>
+
+<li>Darnell and Margolis, chapter 7.</li>
+
+<li>K&amp;R, chapters 1 and 5.</li>
+
+<li>Any algorithms textbook <i>e.g.</i> Sedgewick, <u>Algorithms in C</u>.</li>
+
+</ul>
+
+<hr>
+
+
+</body></html>

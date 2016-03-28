@@ -1,0 +1,340 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 7</title>
+</head>
+
+<body linkifytime="6" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 7</h1>
+</center>
+<hr>
+
+<h2>Goals</h2>
+
+<p>This week, we are going to move beyond a discussion of built-in features
+of the C language (we've covered most of them already) and continue
+discussing how to implement fundamental data structures in C.  The data
+structure we will implement for this assignment is called a <u>hash
+table</u>.  Hash tables are among the most common and most useful
+general-purpose data structures.  Many scripting languages, including perl
+and python, include hash tables as fundamental data structures, but in C you
+have to make them yourself.  We will see that the combination of C's structs,
+arrays and pointers will make this relatively easy, if not completely
+painless.</p>
+
+<h2>Language concepts covered this week</h2>
+
+<p>None.</p>
+
+<h2>Other concepts covered this week</h2>
+
+<p>Hash tables.</p>
+
+
+<h2>Hash tables</h2>
+
+<p>A hash table is a generalization of an array.  An array can be thought of
+as a data structure that maps integers to items of a given type.  A hash
+table can map arbitrary (constant) items of one type (known as "keys") to
+items (not necessarily constant) of another type (known as "values").  Hash
+tables are most often used to map strings to data, and that's what we'll be
+doing here.  You can think of this as if you had an array which was indexed
+by a string value instead of by an integer.  Note that hash tables are not
+the only way to build such a mapping, but they are one of the most
+efficient.</p>
+
+<h3>Hash functions</h3>
+
+<p>The basic idea behind a hash table is this.  You take your key and process
+it with a special function called a "hash function".  This function will
+transform any key into a non-negative integer with a bound which is
+proportional to the size of the table.  In our case it will transform a
+string into a value between 0 and 127.  Ideally, a hash function will map
+different keys to different hash values so that a random population of keys
+will give a uniform distribution of hash values.</p>
+
+<h3>The data structure</h3>
+
+<p>The hash table itself is essentially an array of linked lists.  In fact,
+we define it as a struct which contains an array of linked lists as its only
+field (in a real hash table implementation, there would be more fields, so
+this is realistic; also, it gives you experience working with more complex
+data structures).  The array indices are the same as the hash values (so in
+our case the array length is exactly 128), and the linked lists are initially
+empty (set to <code>NULL</code>).  Note that the linked lists are represented
+as pointers to a node struct, just like in lab 6.  We'll refer to this array
+below as the "node pointer array".</p>
+
+<h3>Adding items to a hash table</h3>
+
+<p>We add items to a hash table as a "key-value pair".  Let's say our keys
+represent movie names and our values represent the rating of the movie in
+stars (0-5).  A typical key-value pair might be ("The Matrix", 5).  First, we
+compute the hash value for "The Matrix" (you'll see how below) and get (say)
+47.  The 47th location in the node pointer array will initially be empty
+(<i>i.e.</i> it will contain a <code>NULL</code> pointer).  We then create a
+new linked list node.  The node's type will be different from what it was
+last lab; here it will have <i>three</i> fields: a field called
+<code>key</code> (a <code>char *</code> which holds the address of the string
+used as a key), a field called <code>value</code> which holds the
+<code>int</code> value, and a "next" pointer as before.  We put the (address
+of the) key string into the <code>key</code> field (here, "The Matrix"), and
+the value into the <code>value</code> field (here, 5).  We then link it to
+location 47 in the hash table array by putting a pointer to the node in the
+node pointer array at location 47.  The "next" field of the linked list node
+itself will be <code>NULL</code>.  Later, we might want to add another entry,
+say ("The Matrix Revolutions", 0).  First, we compute the hash value of "The
+Matrix Revolutions".  Now one of two things could happen:</p>
+
+<ul>
+
+<li><p>If the hash value is not 47, we just create another linked list node
+and add it to the place in the array corresponding to the hash value, just
+as we did for the first item.</p></li>
+
+<li><p>If the hash value is 47 again (which ideally it won't be), we create a
+new linked list node.  Then we have to add it to the old linked list at array
+position 47.  We do this by inserting the new node into the old linked list
+at any point (the order doesn't matter).  Usually we either put it at the
+front or the back of the list (putting it at the front is actually faster and
+easier to program).  To do this we'll have to adjust some pointer
+values.</p></li>
+
+</ul>
+
+<p>Now you can see why hash values should be distributed randomly over the
+set of all possible keys: if all keys hashed to 47, we would end up with just
+a single linked list at one location in the array and nothing anywhere else.
+In that case, looking up elements would take time proportional to the number
+of entries (as it does with linked lists).  If most of the linked lists are
+either empty or have only one or two values, lookup will require a constant
+(small) amount of time.  Of course, as the number of elements in the hash
+table increases in size eventually all the slots will be occupied even with a
+perfect hash function.  At this point you should probably create a bigger
+hash table, but we won't worry about this in this lab.</p>
+
+
+<h3>Retrieving items from a hash table</h3>
+
+<p>To retrieve an item from a hash table means to retrieve the value given
+the key.  The way this is done is as follows:</p>
+
+<ul>
+
+<li>Compute the hash value for the key.</li>
+
+<li>Find the location in the node pointer array corresponding to the hash
+value.</li>
+
+<li>Search the linked list at that location for the key.  In general,
+there will be a very small number of items in the linked list (usually one or
+none), so the search will not take long.</li>
+
+<li>If the key is found, return the value.  If not, return a "not found"
+value (this will become clearer later).  If there was no linked list at that
+location in the array, also return the "not found" value.</li>
+
+</ul>
+
+<p>As we said above, this means that our linked list nodes have to have three
+elements:</p>
+
+<ol>
+
+<li>the key</li>
+
+<li>the value associated with the key</li>
+
+<li>a pointer to the next node, which may be <code>NULL</code> if there is
+no next node.</li>
+
+</ol>
+
+<h2>Program to write</h2>
+
+<p>Your program will use a hash table to count the number of occurrences of
+words in a text file.  The basic algorithm goes as follows.  For each word in
+the file:</p>
+
+<ol>
+
+<li>Look up the word in the hash table.</li>
+
+<li>If it isn't there, add it to the hash table with a value of 1.  In this
+case you'll have to create a new node and link it to the hash table as
+described above.</li>
+
+<li>If it is there, add 1 to its value.  In this case you don't create a new
+node.</li>
+
+</ol>
+
+<p>At the end of the program, you should output all the words in the file,
+one per line, with the count next to the word <i>e.g.</i></p>
+
+<pre>    cat 2
+    hat 4
+    green 12
+    eggs 3
+    ham 5
+    algorithmic 14
+    deoxyribonucleic 3
+    dodecahedron 400
+</pre>
+
+<p>Also, make sure that you explicitly free all memory that you've allocated
+during the run of the program before your program exits.  This includes:</p>
+
+<ol>
+
+<li>all the nodes in the linked lists that the hash table's node pointer
+array points to,</li>
+
+<li>the hash table's node pointer array itself,</li>
+
+<li>the hash table struct itself,</li>
+
+<li>the string keys used in the linked list nodes (allocated in the
+    <tt>main()</tt> function (see below)).</li>
+
+</ol>
+
+<p>The memory leak checker will help ensure that you get this right ;-)</p>
+
+<h3>The hash function</h3>
+
+<p>The hash function you will use is extremely simple: it will go through the
+string a character at a time, convert each character to an integer, add up
+the integer values, and return the sum modulo 128 (but don't use a magic
+number for this).  This will give an integer in the range of [0, 127].  This
+is a poor hash function; for one thing, anagrams will always hash to the same
+value.  However, it's very simple to implement.  Note that a value of type
+<code>char</code> in a C program can also be treated as if it were an
+<code>int</code>, because internally it's a one-byte integer represented by
+the ASCII character encoding.  If you like, you can convert the
+<code>char</code> to an <code>int</code> explicitly using a type cast.
+However, a string of characters is <b>not</b> an <code>int</code>, and you
+can't use <code>atoi</code> to convert it into one (mainly because most of
+the keys will be words, not string representations of numbers).  You also
+shouldn't try to type cast the string to an <code>int</code> (it'll just cast
+the address into an integer, which might work but it's not what you want).  A
+string is an array of <code>chars</code>, which is not the same as a single
+<code>char</code>; keep that in mind.  So you'll need a loop to go through
+the string character-by-character.</p>
+
+<h3>Other details</h3>
+
+<p>Since a value associated with a key will always be positive, if you search
+for a key and don't find it in a hash table, just return 0.  That's the
+special "not found" value for this hash table.</p>
+
+<p>For simplicity, the program assumes that the input file has one word per
+line (we've written this code for you).  The order of the words you output
+isn't important, since the test script will sort them.</p>
+
+
+<h3>Things to watch out for</h3>
+
+<p>You should design your hash table functions to be generic <i>i.e.</i>
+independent of the purpose those functions are used for.  Specifically,
+<b>don't</b> assume that particular values to be assigned mean anything
+special (for instance, don't assume that assigning a value of 1 means that a
+key doesn't exist in the table, just because that's how it will be used in
+the rest of the program).  You should think of the hash table functions as
+being part of a hash table library that you are writing.  Functions in a
+library could be used in many different programs, so the fewer the
+assumptions you make about how the functions will be used, the better.  The
+only exception to this is the rule that says if you are searching for a key
+and it isn't found, you should return zero.  That's not very generic (you can
+imagine a hash table in which it would be OK to store a value of zero), but
+it makes the program simpler.</p>
+
+<p>There is one memory leak which may be hard to get rid of which involves
+the <code>set_value</code> function.  You should assume that the key value
+that is passed to <code>set_value</code> is newly-allocated, and so it either
+has to go into the hash table or it has to be freed.</p>
+
+<h3>Supporting files</h3>
+
+<p>To simplify your task, we're supplying you with:</p>
+
+<ul>
+
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/hash_table.h">header file</a>. <b>Please read this file!</b>
+It describes the data structures for the hash table and also a useful
+<code>#define</code>.  A lot of the problems that students have with this lab
+are a direct result of not reading this file carefully.  In particular, make
+sure you understand the <code>hash_table</code> struct, because if you don't,
+the program will be impossible to get right.</li>
+
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/hash_table.c">template file</a> for your code; this file will
+be called "hash_table.c".</li>
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/main.c">main file</a></li>
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/Makefile">Makefile</a></li>
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/test.in">test input file</a></li>
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/correct_test.out">test output file</a></li>
+<li>a <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/run_test">test script</a></li>
+<li>The memory leak checker: <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/memcheck.c">memcheck.c</a> and
+    <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/lab7/memcheck.h">memcheck.h</a>.</li>
+</ul>
+
+<p>All you have to do is to fill in the definitions in the template file.
+Don't change anything in the other files.</p>
+
+<h2>Testing your program</h2>
+
+<p>The program name is <code>test_hash_table</code>.  It takes one
+command-line argument, which is an input file of words.  Here, the test input
+file is called <code>test.in</code>, so to run the program you would
+type:</p>
+
+<pre>% test_hash_table test.in
+</pre>
+
+<p>This will print a list of word/number pairs to <code>stdout</code>.  To
+check if this is the right list, type <tt>make test</tt> to run the test
+script on your program.  The test script will run your program on
+<code>test.in</code> and will compare the output of the program to the
+correct output.  Don't hand in the program until it passes the test.  Also
+make sure that there are no memory leaks (the memory leak checker will report
+these).</p>
+
+<h2>For extra credit...</h2>
+
+<p>As we mentioned above, you aren't supposed to change anything other than the
+definitions in the template file.  However, the resulting design is not the
+cleanest possible design from the standpoint of managing memory.  If you
+<i>were</i> allowed to change something in the file <code>main.c</code> as
+well as in the template file, how would you do this in order to create a
+cleaner design?  Why would this design be better than the existing design?
+You can put your answer in comments in the <code>main.c</code> file.  Don't
+change any of the code in the <code>main.c</code> file, however; just say
+what you <i>would</i> do.  Also, leave a note in the comments at the top of
+the <code>hash_table.c</code> file that you've modified <code>main.c</code>,
+so we know we should look at it.</p>
+
+<hr>
+
+<h2>To hand in</h2>
+
+<p>The file <code>hash_table.c</code>, and the <code>main.c</code> file if you
+have done the extra credit question (and <i>only</i> if you have done
+that!).</p>
+
+<hr>
+
+<h2>References</h2>
+
+<ul>
+<li><u>Introduction to Algorithms</u>
+by Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Cliff Stein</li>
+<li><u>Algorithms in C</u> by Robert Sedgewick</li>
+</ul>
+
+<hr>
+
+
+
+</body></html>

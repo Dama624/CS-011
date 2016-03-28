@@ -1,0 +1,316 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>CS 11: C track: assignment 1</title>
+</head>
+
+<body linkifytime="9" linkified="0" linkifying="false">
+
+<center>
+<h1>C track: assignment 1</h1>
+</center>
+
+<hr>
+
+
+<h2>Goals</h2>
+
+<p>In this assignment you will learn the basics of compiling programs and the
+most fundamental aspects of the C language.</p>
+
+<hr>
+
+<h2>Prerequisites</h2>
+
+<ul>
+
+<li><p>The Unix environment</p>
+
+<p>You are expected to have an account on the CS cluster and to understand
+the basics of using Unix, the filesystem, logging in and out, etc.  You
+should also be familiar with the "<code>man</code>" command to access on-line
+manual pages.  Note that all the C library functions have man pages which
+describe their use in great detail.</p>
+
+</li>
+
+<li><p>Text editing</p>
+
+<p>You are free to use whatever text editor you like.  Good ones include
+<code>emacs</code>, <code>vi</code>, <code>nedit</code>, or
+<code>pico</code>.  I recommend learning <code>emacs</code> because:</p>
+
+<ul>
+<li>It's incredibly powerful.</li>
+<li>It provides syntax coloring for many programming languages, including C.</li>
+<li>It allows you to access a lot of documentation through the Info system.</li>
+</ul>
+
+<p>However, teaching <code>emacs</code> is beyond the scope of this course.
+You can type "&lt;control&gt;-h t" in <code>emacs</code> to bring up the
+emacs tutorial.  If you are really pressed for time, <code>pico</code> or
+<code>nedit</code> have a much shorter learning curve, but are also much less
+powerful.</p>
+
+</li>
+
+</ul>
+
+<hr>
+
+<h2>Getting set up on the CS cluster</h2>
+
+<p><b>DO NOT SKIP THIS SECTION!</b></p>
+
+<p>Many of you will want to develop and run your programs on your own computer,
+and you are welcome to do so, but the official environment for developing your
+programs is on the CS cluster.  This consists of (a) the computers in Annenberg
+104 which run Linux, and (b) any remote login machines available for the
+cluster.  [Currently, there are no remote login machines available on the
+cluster, but we're working on it.] They all run the same software.  You need to
+do a few small things to get set up to use an up-to-date programming environment
+on the CS cluster.</p>
+
+<p>The first rule is as follows:</p>
+
+<p><b>Do not, under any circumstances, develop or run your programs on the CS
+cluster machine called <code>login.cs.caltech.edu</code> or
+<code>login.cms.caltech.edu</code>!</b>  This computer is not intended to be
+used for program development at all.</p> 
+
+<p>Instead, if you want to develop and test your code remotely, use a remote
+login machine, if there is one.  It will work just like all the other CS cluster
+computers in the lab.</p>
+
+<p>The software for the CS 11 C track lives in the directory
+<code>/cs/courses/cs11/install</code>.  In order to make this software available
+to you, you need to do these simple steps:</p>
+
+<ol>
+
+<li><p>Log in to a CS cluster computer.</p></li>
+
+<li><p>Execute the following line in a terminal (where <code>%</code> represents
+the terminal prompt):</p>
+
+<pre>% cp /cs/courses/cs11/setup/bashrc-cs11 ~/.bashrc-cs11
+</pre>
+
+</li>
+
+<li><p>If you do not have a file in your home directory called
+<code>.bashrc</code> (use <code>ls -a</code> to check for files beginning with a
+dot, which are normally hidden), execute the following line in the terminal:</p>
+
+<pre>% cp ~setup/general.bashrc ~/.bashrc
+</pre>
+
+</li>
+
+<li><p>At the end of your <code>.bashrc</code> file, add the following line:</p>
+
+<pre>source ~/.bashrc-cs11
+</pre>
+
+</li>
+
+</ol>
+
+<p>Now log out and log back in again.  You're all set!</p>
+
+<hr>
+
+<h2>Language concepts covered this week</h2>
+
+<ul>
+
+<li>basic input/output using <code>printf</code> and
+<code>scanf</code></li>
+
+<li>conditionals (<code>if</code> statements)</li>
+
+<li>loops (<code>for</code> statements)</li>
+
+<li>numeric types and conversions (<code>int</code> to
+<code>double</code>)</li>
+
+<li>C strings</li>
+
+<li>preprocessor directives (<code>#include</code>)</li>
+
+<li>using standard libraries</li>
+
+<li>the <code>main()</code> function</li>
+
+<li>compiling code using <code>gcc</code></li>
+
+</ul>
+
+
+<h2>Suggested Reading</h2>
+
+<ul>
+<li><p>Darnell and Margolis, chapter 3.</p></li>
+
+<li><p>K&amp;R, chapter 1 (all) and chapter 7 (pp. 153-159).  Some of the
+material on <code>scanf</code> presupposes an understanding of
+pointers.  Since you haven't seen pointers yet, I've included an "aside on
+scanf" below to help you out.</p></li>
+
+<li><p>If you don't understand the C compilation process, take a moment and
+read <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/compiling_c.html">this page</a> now.</p></li>
+
+</ul>
+
+<h2>Programs to write</h2>
+
+<ul>
+
+<li><code>hello1</code>
+
+<p>Write a program called <code>hello1</code> to print "hello, world!" to the
+terminal.  Use the <code>printf</code> function to do the printing.  Make sure
+there is a newline at the end of the message.  Compile it using the
+command:</p>
+
+<pre>    % gcc -Wall -Wstrict-prototypes -ansi -pedantic hello1.c -o hello1
+</pre>
+
+<p>("%" is the unix shell prompt.)  <code>gcc</code> is the GNU C Compiler, whose
+job it is to convert the file <code>hello1.c</code> (called <u>source code</u>;
+this is the file you create) into a binary executable.  <code>hello1</code> is
+the name of the binary program; the <code>-o</code> option tells the compiler
+that the next argument is the name of the output file.  Don't worry about the
+<code>-Wall</code>; it turns on compiler warnings so that the compiler will warn
+you about anything it considers dubious but which is still legal.  It's a
+good habit to use <code>-Wall</code> whenever you use gcc.  Note that although
+almost all C compilers have some option for enabling or suppressing warnings,
+there is no standard command-line option for these, so <code>-Wall</code> will
+only work for gcc.  Make sure that your <code>main</code> function returns 0 or
+the compiler will issue a warning.  The options <code>-Wstrict-prototypes -ansi
+-pedantic</code> ensure that your program is ANSI-compliant and that your
+prototypes have been declared correctly.  Don't worry about this for now, but
+do use it; it will make your life much easier later on.</p></li>
+
+<li><code>hello2</code>
+
+<p>Modify <code>hello1.c</code> so that the program (now called <code>hello2</code>,
+corresponding to the source code file <code>hello2.c</code>) prints a prompt
+string (<i>e.g.</i> "Enter your name: "), after which you enter your name and
+it prints "hello, &lt;your name&gt;!" to the terminal (with your name
+substituted for "&lt;your name&gt;", of course).  <b>Make sure your program
+prints a prompt string before reading the input</b> (a lot of people forget
+to do this). The name you enter should be a single word only (say, your first
+name).  Use the library function <code>scanf</code> to read the string from
+standard input (also known as <code>stdin</code>) and print to standard
+output (also known as <code>stdout</code>).  <code>stdin</code> and
+<code>stdout</code> both represent input and output from the terminal (as opposed
+to, say, a file).</p>
+
+<p>ASIDE ON SCANF: <code>scanf</code> should be invoked as follows:</p>
+
+<pre>    char s[100];  /* N.B. strings are arrays of chars in C */
+    /* ... maybe some intervening code ... */
+    scanf("%99s", s);
+</pre>
+
+<p>When run, the program will pause while executing the <code>scanf</code>
+until you enter a string and hit return, or until 99 characters have been
+entered (whichever comes first).  [<b>NOTE</b>: the reason you can't enter
+100 characters with this code will be explained in a later lecture.] Then it
+will continue.  The character array <code>s</code> will then contain the
+string you entered, and can be passed to <code>printf</code>.  I will discuss
+this in more detail in later lectures.  Note that <code>scanf</code> used as
+above will also ignore anything past the first whitespace character (space or
+tab).  There are ways to get around this, but they aren't important now (so
+don't worry about it).  That's why your name should just be a single
+word.</p></li>
+
+<li><code>hello3</code>
+
+<p>Modify <code>hello2</code> so that the program prints a prompt, you enter
+your name, the computer generates a <u>single</u> random number
+<code>n</code> between 1 and 10 and prints that many messages.  The format of
+each message that you will print is: "&lt;n&gt;: hello, &lt;your name&gt;!"
+or: "&lt;n&gt;: hi there, &lt;your name&gt;!", where &lt;n&gt; is the random
+number you generated and &lt;your name&gt; is, well, your name.  Print the
+first message when &lt;n&gt; (<b>not</b> the loop index variable) is even and
+the second message when &lt;n&gt; is odd.  <b>All the messages for a single
+run of the program will thus be identical.</b></p>
+
+<p>I repeat: <b>All the messages for a single run of the program are
+identical.</b> <u>Pay attention to this!</u> Every term, about half the
+students print a different message depending on whether the loop index
+variable is odd or even instead of n, or don't print the number n at all.  If
+you do this, you'll have to redo the program and you'll lose marks.</p>
+
+<p>By "loop index variable" I mean <i>e.g.</i> &nbsp;<code>i</code>&nbsp; in:
+&nbsp; <code>for (i = 0; i &lt; n; i++) ...</code>.</p>
+
+<p>Use the <code>rand</code> library function to generate the random numbers; this
+function is found in the <code>stdlib.h</code> header file, so be sure to add:</p>
+
+<pre>    #include &lt;stdlib.h&gt;
+</pre>
+
+<p>to the top of your program source code.  You will also need to "seed" the
+random number generator to get it started; the best way to do this is to
+include this line:</p>
+
+<pre>    srand(time(0));
+</pre>
+
+<p>at the beginning of the program.  <code>srand</code> is also in
+<code>stdlib.h</code>, but <code>time</code> is in the <code>time.h</code>
+header file, so you should <code>#include</code> that as well.  Be aware that
+there is not always 100% standardization on the locations of functions in
+header files among different operating systems.  You should also look at the
+man pages for <code>rand</code> and <code>srand</code>, which will contain
+useful information.  To do this, type: &nbsp; <code>man 3 rand</code> &nbsp;
+at the unix prompt (it's in section 3 of the online manuals; just <code>man
+rand</code> will not work, because there is another <code>rand</code> that
+has a man page).</p>
+
+<p>A slightly tricky part of this task is converting from the return value of
+<code>rand()</code>, which returns an int between 0 and <code>RAND_MAX</code>
+(which is a large integer constant defined in <code>&lt;stdlib.h&gt;</code>)
+into a random number between 1 and 10.  There's more than one way to do
+this.</p>
+
+<p>ASIDE ON NUMERIC CONVERSIONS: You can convert an integer to a real number
+(double or float) as follows:</p>
+
+<pre>    int i = 10;
+    double d = (double)i;  /* Convert int to double. */
+    float f = (float)f;    /* Convert int to float.  */
+</pre>
+
+<p>Recall that doubles are double-precision while floats are
+single-precision.  Similarly, you can convert real numbers (doubles or
+floats) to integers as follows:</p>
+
+<pre>    double d = 12.3;
+    int i = (int)d;    /* Convert double to int. */
+</pre>
+
+<p>In this case, the conversion to integers throws away everything to the right
+of the decimal point (the fractional part).  I'll talk about this more in
+lecture 2.</p>
+
+</li>
+
+</ul>
+
+<h2>To hand in</h2>
+
+<p>The <code>hello1.c</code>, <code>hello2.c</code>, and <code>hello3.c</code>
+programs.  Before you hand them in, make sure that you run the <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_check">style checking program</a> on all of them to catch
+obvious style mistakes.  See the <a href="http://courses.cms.caltech.edu/cs11/material/c/mike/misc/c_style_guide.html">style
+guide</a> for more information on this.</p>
+
+<hr>
+
+
+
+
+</body></html>
